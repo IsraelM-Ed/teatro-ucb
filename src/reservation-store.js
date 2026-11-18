@@ -6,6 +6,7 @@ import {
 
 export const PRICE_PER_SEAT = 40;
 export const RESERVATION_EVENT = 'reserva-actualizada';
+export const RESERVATION_CONFIRMED_EVENT = 'reserva-confirmada';
 const ROWS = ['A', 'B', 'C', 'D', 'E', 'F'];
 const COLUMNS = 10;
 
@@ -105,6 +106,7 @@ export async function confirmReservation() {
         }
 
         await guardarReserva(functionId, seats);
+        document.dispatchEvent(new CustomEvent(RESERVATION_CONFIRMED_EVENT));
 
         if (currentFunction?.id === functionId) {
             seats.forEach(seat => occupiedSeats.add(seat));

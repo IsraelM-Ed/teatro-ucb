@@ -87,6 +87,7 @@ class TeatroNavigation extends HTMLElement {
                     <ul>
                         <li><a href="${sectionLink('cartelera')}">Cartelera</a></li>
                         <li><a href="${sectionLink('reserva')}">Reservar</a></li>
+                        <li><a href="${sectionLink('mis-entradas')}">Mis entradas</a></li>
                         <li><a href="${sectionLink('galeria')}">Galería</a></li>
                         <li><a href="${sectionLink('talleres')}">Talleres</a></li>
                         <li><a href="${sectionLink('ubicacion')}">Ubicación</a></li>

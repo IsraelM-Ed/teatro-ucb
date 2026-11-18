@@ -62,9 +62,18 @@
                 </div>
             </section>
 
+            <section id="mis-entradas" class="seccion mis-entradas-seccion">
+                <h2>Mis reservas y entradas</h2>
+                <p class="mis-entradas-intro">Consulta aquí las funciones y butacas que confirmaste.</p>
+                <div id="listaReservas" class="entradas-grid" aria-live="polite">
+                    <p class="estado-entradas" role="status">Cargando tus entradas...</p>
+                </div>
+            </section>
+
             <section id="galeria" class="seccion seccion-galeria">
                 <h2>Obras pasadas</h2>
                 <div class="rejilla galeria-grid" id="listaGaleria"></div>
+                <div class="estadisticas-obras" id="estadisticasObras" aria-label="Estadísticas de obras pasadas"></div>
                 <div class="grafico">
                     <canvas id="grafico" aria-label="Asistencia por obra"></canvas>
                 </div>
@@ -109,7 +118,7 @@
         </footer>
 
         <dialog id="dlgVideo" class="modal">
-            <form method="dialog">
+            <form class="modal-cerrar-form" method="dialog">
                 <button class="cerrar" aria-label="Cerrar">✕</button>
             </form>
             <h3 id="tituloVideo"></h3>
@@ -118,28 +127,37 @@
         </dialog>
 
         <dialog id="dlgTaller" class="modal">
-            <form method="dialog">
+            <form class="modal-cerrar-form" method="dialog">
                 <button class="cerrar" aria-label="Cerrar">✕</button>
             </form>
+            <p class="modal-etiqueta">Inscripción</p>
             <h3 id="tituloTaller"></h3>
-            <form id="formTaller" novalidate>
-                <label for="nombre">Nombre completo</label>
-                <input id="nombre" name="nombre" required minlength="3" autocomplete="name">
+            <p class="modal-descripcion">Completa tus datos para reservar un cupo. Te contactaremos por correo.</p>
+            <form id="formTaller" class="form-taller" novalidate>
+                <div class="campo-taller">
+                    <label for="nombre">Nombre completo</label>
+                    <input id="nombre" name="nombre" required minlength="3" autocomplete="name">
+                </div>
 
-                <label for="correo">Correo institucional</label>
-                <input id="correo" name="correo" type="email" required pattern="[a-zA-Z0-9._%+\-]+@ucb\.edu\.bo" placeholder="nombre@ucb.edu.bo">
+                <div class="campo-taller">
+                    <label for="correo">Correo institucional</label>
+                    <input id="correo" name="correo" type="email" required pattern="[a-zA-Z0-9._%+\-]+@ucb\.edu\.bo" placeholder="nombre@ucb.edu.bo" autocomplete="email" aria-describedby="ayudaCorreo">
+                    <small id="ayudaCorreo">Debe terminar en @ucb.edu.bo.</small>
+                </div>
 
-                <label for="exp">Experiencia previa</label>
-                <select id="exp" name="exp" required>
-                    <option value="">Selecciona</option>
-                    <option>Ninguna</option>
-                    <option>Básica</option>
-                    <option>Intermedia</option>
-                    <option>Avanzada</option>
-                </select>
+                <div class="campo-taller">
+                    <label for="exp">Experiencia previa</label>
+                    <select id="exp" name="exp" required>
+                        <option value="">Selecciona tu nivel</option>
+                        <option>Ninguna</option>
+                        <option>Básica</option>
+                        <option>Intermedia</option>
+                        <option>Avanzada</option>
+                    </select>
+                </div>
 
-                <p class="error" id="errorTaller" role="alert"></p>
-                <button class="btn" type="submit">Inscribirme</button>
+                <p class="error" id="errorTaller" role="status" aria-live="polite"></p>
+                <button class="btn" type="submit">Enviar inscripción</button>
             </form>
         </dialog>
 
@@ -150,6 +168,7 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
         <script type="module" src="js/main.js"></script>
         <script type="module" src="js/talleres.js"></script>
+        <script type="module" src="js/mis-entradas.js"></script>
         <script type="module" src="/src/main.js"></script>
     </body>
 </html>

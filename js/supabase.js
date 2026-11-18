@@ -54,7 +54,7 @@ export async function usuarioActual() {
 // ---------- Reservas (reemplazan el localStorage) ----------
 export async function butacasOcupadas(funcionId) {
   const { data, error } = await getSupabase()
-    .from('reservas').select('butaca').eq('funcion_id', funcionId);
+    .rpc('butacas_ocupadas', { p_funcion_id: funcionId });
   if (error) throw error;
   return data.map(r => r.butaca);
 }
@@ -68,4 +68,17 @@ export async function confirmarReserva(funcionId, butacas) {
     if (error.code === '23505') throw new Error('Alguna butaca ya fue reservada. Elige otra.');
     throw error;
   }
+}
+
+export async function misReservas() {
+  const user = await usuarioActual();
+  if (!user) return null;
+
+  const { data, error } = await getSupabase()
+    .from('reservas')
+    .select('id, funcion_id, butaca, created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
 }

@@ -295,11 +295,13 @@ input:invalid:not(:placeholder-shown) {
 }
 
 .grafico {
-    max-width: 700px;
+    max-width: 1000px;
+    height: 360px;
     margin: 3rem auto 0;
-    padding: 1rem;
-    background: var(--color-superficie);
-    border-radius: var(--radio);
+    padding: clamp(1rem, 3vw, 2rem);
+    background: rgba(0, 0, 0, 0.68);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 16px;
 }
 
 .mapa-campus {
@@ -361,7 +363,7 @@ input:invalid:not(:placeholder-shown) {
     border-radius: var(--radio);
 }
 
-.modal > form {
+.modal > .modal-cerrar-form {
     display: flex;
     justify-content: flex-end;
 }
@@ -385,6 +387,63 @@ input:invalid:not(:placeholder-shown) {
 
 .modal iframe {
     border: 0;
+}
+
+.modal-etiqueta {
+    color: var(--color-oro);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.modal-descripcion {
+    margin: -0.6rem 0 1.2rem;
+    color: var(--color-suave);
+}
+
+.form-taller {
+    display: grid;
+    gap: 1rem;
+}
+
+.form-taller .campo-taller {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.form-taller label {
+    margin: 0;
+    font-weight: 600;
+}
+
+.form-taller input,
+.form-taller select {
+    min-height: 48px;
+    padding: 0.7rem 0.8rem;
+    background: #171313;
+    border-color: #514545;
+}
+
+.form-taller input::placeholder {
+    color: #a59b9b;
+}
+
+.form-taller small {
+    color: var(--color-suave);
+    font-size: 0.85rem;
+}
+
+.form-taller .error {
+    margin: 0;
+}
+
+.form-taller .btn {
+    width: 100%;
+    background: #fff;
+    color: #14100a;
+    border-color: #fff;
+    font-weight: 700;
 }
 
 .cerrar {
@@ -486,4 +545,15 @@ input:invalid:not(:placeholder-shown) {
     font-size: 18px;
     font-weight: 700;
     border-radius: 6px;
+}
+
+@media (max-width: 520px) {
+    .obra-horarios li {
+        gap: 0.3rem;
+        font-size: 0.95rem;
+    }
+
+    .grafico {
+        height: 300px;
+    }
 }

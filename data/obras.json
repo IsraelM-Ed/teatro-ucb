@@ -4,6 +4,7 @@
             "id": 1,
             "titulo": "La casa de Bernarda Alba",
             "autor": "Federico García Lorca",
+            "duracionMinutos": 90,
             "funciones": [
                 { "id": "obra-1-funcion-1", "fecha": "2026-11-14T19:30" },
                 { "id": "obra-1-funcion-2", "fecha": "2026-11-15T18:00" }
@@ -16,6 +17,7 @@
             "id": 2,
             "titulo": "Esperando a Godot",
             "autor": "Samuel Beckett",
+            "duracionMinutos": 90,
             "funciones": [
                 { "id": "obra-2-funcion-1", "fecha": "2026-11-21T19:30" },
                 { "id": "obra-2-funcion-2", "fecha": "2026-11-22T18:00" }
@@ -28,6 +30,7 @@
             "id": 3,
             "titulo": "Un tranvía llamado deseo",
             "autor": "Tennessee Williams",
+            "duracionMinutos": 90,
             "funciones": [
                 { "id": "obra-3-funcion-1", "fecha": "2026-12-05T20:00" },
                 { "id": "obra-3-funcion-2", "fecha": "2026-12-06T18:00" }
@@ -40,6 +43,7 @@
             "id": 4,
             "titulo": "El avaro",
             "autor": "Molière",
+            "duracionMinutos": 90,
             "funciones": [
                 { "id": "obra-4-funcion-1", "fecha": "2026-12-12T19:00" },
                 { "id": "obra-4-funcion-2", "fecha": "2026-12-13T18:00" }

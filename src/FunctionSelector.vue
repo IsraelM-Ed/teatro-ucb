@@ -6,7 +6,7 @@ const works = ref([]);
 const selectedId = ref('');
 const selectedWorkId = ref('');
 
-const dateLabel = date => dayjs(date).format('D MMM, HH:mm');
+const dateLabel = date => dayjs(date).format('ddd D MMM YYYY, HH:mm');
 const functionGroups = computed(() => works.value.filter(work => String(work.id) === selectedWorkId.value).map(work => ({
     ...work,
     funciones: work.funciones.map(funcion => ({

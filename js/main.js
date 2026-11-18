@@ -15,7 +15,8 @@ L.Icon.Default.mergeOptions({
 
 dayjs.locale('es');
 
-const fmt = f => dayjs(f).format('dddd D [de] MMMM, HH:mm');
+const fmtFechaFuncion = f => dayjs(f).format('D MMM YYYY · HH:mm');
+const fmtHora = f => dayjs(f).format('HH:mm');
 const assetUrl = path => `${import.meta.env.BASE_URL}${path.replace(/^\.?\//, '')}`;
 let datos = null;
 let obraSeleccionada = null;
@@ -27,7 +28,10 @@ function pintarObraDestacada(obra) {
         return;
     }
 
-    const horas = [...new Set(obra.funciones.map(funcion => dayjs(funcion.fecha).format('HH:mm')))];
+    const funciones = obra.funciones.map(funcion => {
+        const salida = dayjs(funcion.fecha).add(obra.duracionMinutos, 'minute');
+        return `<li><time datetime="${funcion.fecha}">${fmtHora(funcion.fecha)}</time><span>–</span><time datetime="${salida.format('YYYY-MM-DDTHH:mm')}">${fmtHora(salida)}</time></li>`;
+    }).join('');
     panel.classList.remove('actualizando');
     panel.innerHTML = `
         <div class="obra-destacada-contenido">
@@ -37,9 +41,13 @@ function pintarObraDestacada(obra) {
                 <p>${obra.sinopsis}</p>
             </div>
             <div class="obra-metricas">
-                <div>
-                    <strong>${horas.join(' · ')}</strong>
-                    <span>Hora de Inicio</span>
+                <div class="obra-duracion">
+                    <strong>${obra.duracionMinutos}</strong>
+                    <span>minutos</span>
+                </div>
+                <div class="obra-horarios">
+                    <span class="obra-horarios-titulo">Ingreso y salida</span>
+                    <ul>${funciones}</ul>
                 </div>
             </div>
         </div>
@@ -59,8 +67,9 @@ function pintarObras() {
             <img src="${assetUrl(o.img)}" alt="Imagen de ${o.titulo}" loading="lazy">
             <div class="tarjeta-cuerpo">
                 <h3>${o.titulo}</h3>
+                <p class="duracion-obra">${o.duracionMinutos} min</p>
                 <p class="autor">${o.autor}</p>
-                <p class="fecha">${o.funciones.map(f => fmt(f.fecha)).join(' · ')}</p>
+                <ul class="fechas-funcion">${o.funciones.map(f => `<li><time datetime="${f.fecha}">${fmtFechaFuncion(f.fecha)}</time></li>`).join('')}</ul>
             </div>
         </button>
     `).join('');
@@ -145,6 +154,17 @@ function pintarGaleria() {
         </article>
     `).join('');
 
+    const asistencias = datos.pasadas.map(obra => obra.asistencia);
+    const totalAsistentes = asistencias.reduce((total, cantidad) => total + cantidad, 0);
+    const promedio = datos.pasadas.length ? Math.round(totalAsistentes / datos.pasadas.length) : 0;
+    const mayorAsistencia = Math.max(0, ...asistencias);
+    document.getElementById('estadisticasObras').innerHTML = `
+        <article class="estadistica-obra"><span>Obras presentadas</span><strong>${datos.pasadas.length}</strong></article>
+        <article class="estadistica-obra"><span>Asistencia total</span><strong>${totalAsistentes.toLocaleString('es-BO')}</strong><small>personas</small></article>
+        <article class="estadistica-obra"><span>Promedio por obra</span><strong>${promedio.toLocaleString('es-BO')}</strong><small>personas</small></article>
+        <article class="estadistica-obra"><span>Mayor asistencia</span><strong>${mayorAsistencia.toLocaleString('es-BO')}</strong><small>personas</small></article>
+    `;
+
     new Chart(document.getElementById('grafico'), {
         type: 'bar',
         data: {
@@ -152,24 +172,35 @@ function pintarGaleria() {
             datasets: [{
                 label: 'Asistentes',
                 data: datos.pasadas.map(p => p.asistencia),
-                backgroundColor: 'rgba(255, 255, 255, 0.55)',
-                borderColor: '#fff',
-                borderWidth: 2
+                backgroundColor: 'rgba(212, 175, 55, 0.72)',
+                hoverBackgroundColor: '#f0d477',
+                borderColor: '#d4af37',
+                borderWidth: 1,
+                borderRadius: 8,
+                maxBarThickness: 64
             }]
         },
         options: {
+            responsive: true,
+            maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    labels: { color: '#fff' }
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: context => `${context.parsed.y.toLocaleString('es-BO')} asistentes`
+                    }
                 }
             },
             scales: {
                 x: {
-                    ticks: { color: '#fff' }
+                    ticks: { color: '#f1ece4' },
+                    grid: { display: false }
                 },
                 y: {
+                    beginAtZero: true,
                     ticks: { color: 'rgba(255, 255, 255, 0.72)' },
-                    grid: { color: 'rgba(255, 255, 255, 0.16)' }
+                    grid: { color: 'rgba(255, 255, 255, 0.12)' },
+                    title: { display: true, text: 'Asistentes', color: '#f1ece4' }
                 }
             }
         }
