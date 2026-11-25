@@ -247,6 +247,28 @@
     gap: 1rem;
 }
 
+.admin-lista-busqueda {
+    display: grid;
+    max-width: 32rem;
+    gap: 0.4rem;
+    margin-top: 0.2rem;
+}
+
+.admin-lista-busqueda label {
+    font-weight: 600;
+}
+
+.admin-lista-busqueda input {
+    width: 100%;
+    min-width: 0;
+    padding: 0.7rem 0.8rem;
+    color: var(--color-texto);
+    background: #0e0e0e;
+    border: 1px solid #514545;
+    border-radius: var(--radio);
+    font: inherit;
+}
+
 .admin-obra {
     display: block;
     min-width: 0;
@@ -255,6 +277,10 @@
     background: rgba(25, 16, 16, 0.92);
     border: 1px solid rgba(212, 175, 55, 0.35);
     border-radius: 15px;
+}
+
+.admin-obra[hidden] {
+    display: none;
 }
 
 .admin-obra > summary {
@@ -457,6 +483,10 @@
     align-items: end;
     gap: 0.7rem;
     padding: 0 0.8rem 0.8rem;
+}
+
+.admin-funcion > .btn-eliminar {
+    margin: 0 0.8rem 0.8rem;
 }
 
 .admin-campo-hora {

@@ -23,7 +23,10 @@ administradores existentes agregar otros correos que ya tengan una cuenta.
 Después de aplicar la migración, inicia sesión con esa cuenta para acceder a
 **Administración**, que abre la página independiente `admin.html`. Presenta
 tres acciones principales; agregar o gestionar obras abre un panel flotante.
-La gestión también incluye la opción de otorgar privilegios a otras cuentas
+La gestión permite buscar por nombre de obra o director, prioriza las obras con
+funciones vigentes y deja retirar funciones de cartelera. Al retirarlas quedan
+marcadas como canceladas, sin borrar la función ni sus reservas, para conservar
+los datos estadísticos. También permite otorgar privilegios a otras cuentas
 verificadas. Las nuevas obras, presentaciones y altas administrativas se
 guardan en Supabase; las inscripciones a talleres también se guardan allí. Si
 Supabase no está configurado, el catálogo y las inscripciones conservan el

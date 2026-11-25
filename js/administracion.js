@@ -6,6 +6,8 @@ const estado = document.getElementById('adminEstado');
 const cerrarSesionButton = document.getElementById('adminCerrarSesion');
 const obrasContainer = document.getElementById('adminObras');
 const administradoresContainer = document.getElementById('listaAdministradores');
+const buscarObrasInput = document.getElementById('buscarObras');
+const obrasSinResultados = document.getElementById('adminObrasSinResultados');
 const horarios = ['15:00', '16:30', '18:00', '19:30', '20:00'];
 let verificacion = 0;
 document.getElementById('adminFecha').min = ahoraLocal();
@@ -24,6 +26,18 @@ function crearElemento(tag, className, text) {
 
 function fechaLocal(value) {
     return String(value ?? '').replace(' ', 'T').slice(0, 16);
+}
+
+function instanteLocal(value) {
+    return new Date(String(value ?? '').replace(' ', 'T')).getTime();
+}
+
+function salidaFuncion(funcion, obra) {
+    return funcion.salida ?? sumarMinutos(fechaLocal(funcion.inicio).replace('T', ' '), obra.duracion_minutos);
+}
+
+function funcionEnCartelera(funcion, obra, ahora) {
+    return obra.activa && funcion.estado === 'programada' && instanteLocal(salidaFuncion(funcion, obra)) > ahora;
 }
 
 function ahoraLocal() {
@@ -110,13 +124,29 @@ async function cargarAdministracion() {
 
 function pintarAdminObras(obras, funciones) {
     const fragment = document.createDocumentFragment();
-    for (const obra of obras) {
+    const funcionesPorObra = new Map();
+    for (const funcion of funciones) {
+        const presentaciones = funcionesPorObra.get(funcion.obra_id) ?? [];
+        presentaciones.push(funcion);
+        funcionesPorObra.set(funcion.obra_id, presentaciones);
+    }
+
+    const ahora = Date.now();
+    const fechaProxima = obra => (funcionesPorObra.get(obra.id) ?? [])
+        .filter(funcion => funcionEnCartelera(funcion, obra, ahora))
+        .reduce((proxima, funcion) => Math.min(proxima, instanteLocal(funcion.inicio)), Infinity);
+    const obrasOrdenadas = [...obras].sort((a, b) =>
+        fechaProxima(a) - fechaProxima(b) || a.titulo.localeCompare(b.titulo, 'es'));
+
+    for (const obra of obrasOrdenadas) {
+        const presentaciones = funcionesPorObra.get(obra.id) ?? [];
         const card = crearElemento('details', 'admin-obra');
+        card.dataset.busqueda = normalizarTexto(`${obra.titulo} ${obra.director ?? ''}`).toLocaleLowerCase('es-BO');
         const summary = crearElemento('summary', 'admin-obra-resumen');
         summary.append(
             crearElemento('span', 'admin-obra-titulo', obra.titulo),
             crearElemento('span', obra.activa ? 'admin-badge' : 'admin-badge admin-badge-inactivo', obra.activa ? 'En cartelera' : 'Retirada'),
-            crearElemento('span', 'admin-obra-total', `${funciones.filter(funcion => funcion.obra_id === obra.id).length} funciones`)
+            crearElemento('span', 'admin-obra-total', `${presentaciones.length} funciones`)
         );
         card.append(summary);
 
@@ -139,14 +169,22 @@ function pintarAdminObras(obras, funciones) {
         actions.append(editDetails, removeWorkButton);
         content.append(actions);
 
-        const presentations = funciones.filter(funcion => funcion.obra_id === obra.id);
-        if (presentations.length) {
+        if (presentaciones.length) {
             const list = crearElemento('div', 'admin-funciones');
             list.append(crearElemento('h5', '', 'Funciones'));
-            for (const funcion of presentations) {
+            const presentacionesOrdenadas = [...presentaciones].sort((a, b) => {
+                const categoriaA = funcionEnCartelera(a, obra, ahora) ? 0 : a.estado === 'cancelada' ? 2 : 1;
+                const categoriaB = funcionEnCartelera(b, obra, ahora) ? 0 : b.estado === 'cancelada' ? 2 : 1;
+                if (categoriaA !== categoriaB) return categoriaA - categoriaB;
+                return categoriaA === 0
+                    ? instanteLocal(a.inicio) - instanteLocal(b.inicio)
+                    : instanteLocal(b.inicio) - instanteLocal(a.inicio);
+            });
+            for (const funcion of presentacionesOrdenadas) {
                 const row = crearElemento('details', 'admin-funcion');
-                const end = funcion.salida ?? sumarMinutos(fechaHora(fechaLocal(funcion.inicio), fechaLocal(funcion.inicio).slice(11, 16)), obra.duracion_minutos);
-                const vencida = new Date(String(end).replace(' ', 'T')) <= new Date();
+                const end = salidaFuncion(funcion, obra);
+                const enCartelera = funcionEnCartelera(funcion, obra, ahora);
+                const vencida = instanteLocal(end) <= ahora || funcion.estado === 'finalizada';
                 const status = funcion.estado === 'cancelada'
                     ? crearElemento('span', 'admin-badge admin-badge-inactivo', 'Cancelada')
                     : vencida
@@ -171,6 +209,12 @@ function pintarAdminObras(obras, funciones) {
                 saveFunctionButton.type = 'submit';
                 editFunctionForm.append(saveFunctionButton);
                 row.append(rowSummary, editFunctionForm);
+                if (enCartelera) {
+                    const removeFunctionButton = crearElemento('button', 'btn btn-eliminar', 'Retirar función');
+                    removeFunctionButton.type = 'button';
+                    removeFunctionButton.dataset.retirarFuncion = String(funcion.id);
+                    row.append(removeFunctionButton);
+                }
                 list.append(row);
             }
             content.append(list);
@@ -195,6 +239,23 @@ function pintarAdminObras(obras, funciones) {
         fragment.append(card);
     }
     obrasContainer.replaceChildren(fragment);
+    filtrarObrasAdmin();
+}
+
+function filtrarObrasAdmin() {
+    const busqueda = normalizarTexto(buscarObrasInput.value).toLocaleLowerCase('es-BO');
+    let coincidencias = 0;
+    const tarjetas = obrasContainer.querySelectorAll('.admin-obra');
+    for (const tarjeta of tarjetas) {
+        const coincide = tarjeta.dataset.busqueda.includes(busqueda);
+        tarjeta.hidden = !coincide;
+        if (coincide) coincidencias++;
+    }
+
+    obrasSinResultados.hidden = coincidencias > 0;
+    obrasSinResultados.textContent = tarjetas.length && busqueda
+        ? 'No se encontraron obras que coincidan con la búsqueda.'
+        : 'No hay obras registradas.';
 }
 
 function campoFechaHora(label, name, value) {
@@ -314,6 +375,27 @@ obrasContainer.addEventListener('submit', async event => {
 });
 
 obrasContainer.addEventListener('click', async event => {
+    const functionButton = event.target.closest('[data-retirar-funcion]');
+    if (functionButton) {
+        if (!window.confirm('¿Retirar esta función de la cartelera? Dejará de aparecer para el público y no aceptará reservas; se conservarán el registro y las reservas para las estadísticas.')) return;
+        functionButton.disabled = true;
+        try {
+            const { error } = await supabase.from('funciones')
+                .update({ estado: 'cancelada' })
+                .eq('id', functionButton.dataset.retirarFuncion)
+                .eq('estado', 'programada')
+                .select('id')
+                .single();
+            if (error) throw error;
+            await cargarAdministracion();
+        } catch (error) {
+            manejarError(error, 'No se pudo retirar la función de la cartelera.');
+        } finally {
+            functionButton.disabled = false;
+        }
+        return;
+    }
+
     const button = event.target.closest('[data-eliminar-obra]');
     if (!button || !window.confirm('¿Eliminar esta obra de la cartelera? El historial y sus reservas se conservarán para las estadísticas.')) return;
     button.disabled = true;
@@ -354,6 +436,8 @@ function normalizarTexto(value) {
         .replace(/\s+/g, ' ')
         .trim();
 }
+
+buscarObrasInput.addEventListener('input', filtrarObrasAdmin);
 
 function numero(value) {
     return Number(value ?? 0).toLocaleString('es-BO');
