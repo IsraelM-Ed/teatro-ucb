@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Administración · Teatro UCB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Afacad:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/styles.css">
+  <link rel="stylesheet" href="./css/admin.css">
+</head>
+<body class="admin-page">
+  <header class="admin-header">
+    <a class="admin-brand" href="./index.html" aria-label="Volver al sitio de Teatro UCB">
+      <img src="./assets/logo_catolica.png" alt="Universidad Católica Boliviana San Pablo" width="221" height="97">
+    </a>
+    <div class="admin-header-actions">
+      <span>Panel de administración</span>
+      <a href="./index.html">Volver al sitio</a>
+      <button id="adminCerrarSesion" type="button" hidden>Cerrar sesión</button>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <p id="adminEstado" class="admin-estado" role="status" aria-live="polite">Verificando permisos...</p>
+
+    <section id="adminSinAcceso" class="admin-acceso" hidden>
+      <h1>Acceso restringido</h1>
+      <p id="adminMensajeAcceso">Esta cuenta no tiene permisos de administración.</p>
+      <a class="btn" href="./index.html">Volver al sitio</a>
+      <a class="btn" href="./login.html">Iniciar sesión</a>
+    </section>
+
+    <section id="adminDashboard" hidden>
+      <div class="admin-titulo">
+        <p class="admin-eyebrow">Teatro UCB</p>
+        <h1>Administración</h1>
+        <p>¿Qué deseas hacer hoy?</p>
+      </div>
+
+      <div class="admin-acciones-principales">
+        <button class="admin-accion" type="button" data-abrir-dialogo="dlgNuevaObra">
+          <span class="admin-accion-icono" aria-hidden="true">＋</span>
+          <span class="admin-accion-titulo">Agregar obra</span>
+          <span class="admin-accion-descripcion">Registra una obra y programa su primera función.</span>
+        </button>
+        <button class="admin-accion" type="button" data-abrir-dialogo="dlgGestionObras">
+          <span class="admin-accion-icono" aria-hidden="true">✎</span>
+          <span class="admin-accion-titulo">Gestionar obras</span>
+          <span class="admin-accion-descripcion">Edita obras, horarios y administra los permisos.</span>
+        </button>
+        <button id="descargarReporte" class="admin-accion" type="button">
+          <span class="admin-accion-icono" aria-hidden="true">↓</span>
+          <span class="admin-accion-titulo">Imprimir reporte</span>
+          <span class="admin-accion-descripcion">Descarga el reporte administrativo en PDF.</span>
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="dlgNuevaObra" class="admin-dialog admin-dialog-form" aria-labelledby="tituloNuevaObra">
+    <form class="admin-dialog-cerrar" method="dialog">
+      <button class="cerrar" aria-label="Cerrar">✕</button>
+    </form>
+    <p class="admin-eyebrow">Nueva producción</p>
+    <h2 id="tituloNuevaObra">Agregar obra</h2>
+    <p class="admin-dialog-intro">Completa los datos de la obra y elige una fecha con horario preestablecido.</p>
+    <form id="formNuevaObra" class="admin-form">
+      <label for="adminTitulo">Nombre de la obra</label>
+      <input id="adminTitulo" name="titulo" required maxlength="160">
+      <label for="adminDirector">Director</label>
+      <input id="adminDirector" name="director" required maxlength="160">
+      <label for="adminDescripcion">Descripción <span>(opcional)</span></label>
+      <textarea id="adminDescripcion" name="sinopsis" rows="3" maxlength="1200" placeholder="Si la dejas vacía, usaremos una descripción genérica."></textarea>
+      <label for="adminVideo">Enlace de YouTube del tráiler <span>(opcional)</span></label>
+      <input id="adminVideo" name="video_url" type="url" placeholder="https://www.youtube.com/watch?v=..." pattern="https?://(www\.)?(youtube\.com|youtu\.be)/.+" title="Usa un enlace de YouTube válido.">
+      <div class="admin-horario">
+        <label for="adminFecha">Fecha
+          <input id="adminFecha" name="fecha" type="date" required>
+        </label>
+        <label for="adminHora">Horario preestablecido
+          <select id="adminHora" name="hora" required>
+            <option value="">Selecciona un horario</option>
+            <option value="15:00">15:00</option>
+            <option value="16:30">16:30</option>
+            <option value="18:00">18:00</option>
+            <option value="19:30">19:30</option>
+            <option value="20:00">20:00</option>
+          </select>
+        </label>
+      </div>
+      <div class="admin-dialog-footer">
+        <button class="btn btn-borde" type="button" data-cerrar-dialogo>Cambiar de opinión</button>
+        <button class="btn btn-primario" type="submit">Crear obra</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlgGestionObras" class="admin-dialog admin-dialog-gestion" aria-labelledby="tituloGestionObras">
+    <form class="admin-dialog-cerrar" method="dialog">
+      <button class="cerrar" aria-label="Cerrar">✕</button>
+    </form>
+    <p class="admin-eyebrow">Catálogo</p>
+    <h2 id="tituloGestionObras">Gestionar obras</h2>
+    <p class="admin-dialog-intro">Modifica los datos y horarios de las funciones. Las funciones pasadas se conservan para estadísticas.</p>
+    <div id="adminObras" class="admin-lista"></div>
+    <section class="admin-bloque admin-gestion-admins">
+      <h3>Permisos de administrador</h3>
+      <p>Solo puedes agregar cuentas registradas y verificadas.</p>
+      <form id="formNuevoAdmin" class="admin-form admin-admin-form">
+        <label for="adminEmail">Correo de la cuenta</label>
+        <input id="adminEmail" name="email" type="email" required>
+        <button class="btn" type="submit">Agregar administrador</button>
+      </form>
+      <ul id="listaAdministradores" class="admin-lista-admins"></ul>
+    </section>
+  </dialog>
+
+  <script type="module" src="./js/administracion.js"></script>
+</body>
+</html>

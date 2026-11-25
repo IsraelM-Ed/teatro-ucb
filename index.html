@@ -84,62 +84,6 @@
                 <div class="rejilla talleres-grid" id="listaTalleres"></div>
             </section>
 
-            <section id="administracion" class="seccion seccion-alt" hidden>
-                <h2>Administración</h2>
-                <p id="adminEstado" class="admin-estado" role="status"></p>
-                <div class="admin-panel">
-                    <section class="admin-bloque">
-                        <h3>Agregar una obra y su primera función</h3>
-                        <form id="formNuevaObra" class="admin-form">
-                            <label for="adminTitulo">Nombre de la obra</label>
-                            <input id="adminTitulo" name="titulo" required maxlength="160">
-                            <label for="adminDirector">Director</label>
-                            <input id="adminDirector" name="director" required maxlength="160">
-                            <label for="adminDescripcion">Descripción</label>
-                            <textarea id="adminDescripcion" name="sinopsis" rows="3" maxlength="1200"></textarea>
-                            <label for="adminVideo">Enlace de YouTube del tráiler</label>
-                            <input id="adminVideo" name="video_url" type="url" placeholder="https://www.youtube.com/watch?v=..." pattern="https?://(www\.)?(youtube\.com|youtu\.be)/.+" title="Usa un enlace de YouTube válido.">
-                            <div class="admin-horario">
-                                <div>
-                                    <label for="adminFecha">Fecha</label>
-                                    <input id="adminFecha" name="fecha" type="date" required>
-                                </div>
-                                <div>
-                                    <label for="adminHora">Horario preestablecido</label>
-                                    <select id="adminHora" name="hora" required>
-                                        <option value="">Selecciona un horario</option>
-                                        <option value="15:00">15:00</option>
-                                        <option value="16:30">16:30</option>
-                                        <option value="18:00">18:00</option>
-                                        <option value="19:30">19:30</option>
-                                        <option value="20:00">20:00</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <button class="btn btn-primario" type="submit">Crear obra y función</button>
-                        </form>
-                    </section>
-                    <section class="admin-bloque">
-                        <h3>Obras y funciones</h3>
-                        <div id="adminObras" class="admin-lista"></div>
-                    </section>
-                    <section class="admin-bloque">
-                        <h3>Administradores</h3>
-                        <form id="formNuevoAdmin" class="admin-form admin-admin-form">
-                            <label for="adminEmail">Correo de una cuenta registrada</label>
-                            <input id="adminEmail" name="email" type="email" required>
-                            <button class="btn" type="submit">Agregar administrador</button>
-                        </form>
-                        <ul id="listaAdministradores" class="admin-lista-admins"></ul>
-                    </section>
-                    <section class="admin-bloque">
-                        <h3>Reporte administrativo</h3>
-                        <p>Descarga un PDF con reservas, ocupación, funciones y talleres.</p>
-                        <button id="descargarReporte" class="btn btn-primario" type="button">Descargar reporte PDF</button>
-                    </section>
-                </div>
-            </section>
-
             <section id="ubicacion" class="seccion ubicacion-seccion">
                 <div class="ubicacion-encabezado">
                     <div>
@@ -225,7 +169,6 @@
         <script type="module" src="js/main.js"></script>
         <script type="module" src="js/talleres.js"></script>
         <script type="module" src="js/mis-entradas.js"></script>
-        <script type="module" src="js/administracion.js"></script>
         <script type="module" src="/src/main.js"></script>
     </body>
 </html>

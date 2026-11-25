@@ -167,11 +167,10 @@ class TeatroNavigation extends HTMLElement {
                 if (request !== this.sessionRequestId) return;
                 if (esAdmin) {
                     const adminLink = document.createElement('a');
-                    adminLink.href = /\/(?:login|registro)\.html$/.test(window.location.pathname)
-                        ? `${base}index.html#administracion`
-                        : '#administracion';
-                    adminLink.textContent = 'Administración';
-                    container.append(adminLink);
+                    adminLink.href = `${base}admin.html`;
+                    adminLink.className = 'sesion-admin-link';
+                    adminLink.textContent = 'Admin';
+                    container.prepend(adminLink);
                 }
             })
             .catch(error => {

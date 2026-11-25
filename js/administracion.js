@@ -1,7 +1,9 @@
-import { supabase, usuarioEsAdministrador } from './supabase.js';
+import { cerrarSesion, supabase, usuarioEsAdministrador } from './supabase.js';
 
-const panel = document.getElementById('administracion');
+const panel = document.getElementById('adminDashboard');
+const sinAcceso = document.getElementById('adminSinAcceso');
 const estado = document.getElementById('adminEstado');
+const cerrarSesionButton = document.getElementById('adminCerrarSesion');
 const obrasContainer = document.getElementById('adminObras');
 const administradoresContainer = document.getElementById('listaAdministradores');
 const horarios = ['15:00', '16:30', '18:00', '19:30', '20:00'];
@@ -60,6 +62,9 @@ async function verificarAcceso() {
     const request = ++verificacion;
     if (!supabase) {
         panel.hidden = true;
+        sinAcceso.hidden = false;
+        cerrarSesionButton.hidden = true;
+        document.getElementById('adminMensajeAcceso').textContent = 'No se pudo conectar con Supabase. Configura la conexión e inténtalo otra vez.';
         return;
     }
 
@@ -67,34 +72,43 @@ async function verificarAcceso() {
         const esAdmin = await usuarioEsAdministrador();
         if (request !== verificacion) return;
         panel.hidden = !esAdmin;
-        if (esAdmin) await cargarAdministracion();
+        sinAcceso.hidden = esAdmin;
+        cerrarSesionButton.hidden = !esAdmin;
+        if (!esAdmin) {
+            document.getElementById('adminMensajeAcceso').textContent = 'Inicia sesión con una cuenta que tenga permisos de administración.';
+            mostrarEstado('');
+            return;
+        }
+        await cargarAdministracion();
     } catch (error) {
         if (request !== verificacion) return;
         panel.hidden = true;
-        console.error('No se pudo verificar el acceso administrativo.', error);
+        sinAcceso.hidden = false;
+        cerrarSesionButton.hidden = true;
+        document.getElementById('adminMensajeAcceso').textContent = 'No se pudieron verificar los permisos. Vuelve a iniciar sesión o contacta al administrador del sistema.';
+        manejarError(error, 'No se pudo verificar el acceso administrativo.');
     }
 }
 
 async function cargarAdministracion() {
     mostrarEstado('Cargando datos administrativos...');
-    const [obrasResult, funcionesResult, salasResult, adminsResult] = await Promise.all([
+    const [obrasResult, funcionesResult, adminsResult] = await Promise.all([
         supabase.from('obras')
             .select('id, titulo, director, duracion_minutos, sinopsis, video_url, activa')
             .order('id'),
         supabase.from('funciones')
             .select('id, obra_id, sala_id, inicio, salida, estado')
             .order('inicio'),
-        supabase.from('salas').select('id, nombre, capacidad').eq('activa', true),
         supabase.from('administradores').select('email').order('email')
     ]);
-    const failed = [obrasResult, funcionesResult, salasResult, adminsResult].find(result => result.error);
+    const failed = [obrasResult, funcionesResult, adminsResult].find(result => result.error);
     if (failed?.error) throw failed.error;
-    pintarAdminObras(obrasResult.data, funcionesResult.data, salasResult.data);
+    pintarAdminObras(obrasResult.data, funcionesResult.data);
     administradoresContainer.replaceChildren(...adminsResult.data.map(admin => crearElemento('li', '', admin.email)));
     mostrarEstado('Los cambios quedan guardados en Supabase. Las funciones pasadas se conservan para las estadísticas.');
 }
 
-function pintarAdminObras(obras, funciones, salas) {
+function pintarAdminObras(obras, funciones) {
     const fragment = document.createDocumentFragment();
     for (const obra of obras) {
         const card = crearElemento('article', 'admin-obra');
@@ -207,7 +221,8 @@ document.getElementById('formNuevaObra').addEventListener('submit', async event 
         if (error) throw error;
         form.reset();
         await cargarAdministracion();
-        document.dispatchEvent(new Event('catalogo-actualizado'));
+        document.getElementById('dlgNuevaObra').close();
+        mostrarEstado('Obra y primera función creadas correctamente.');
     } catch (error) {
         manejarError(error, 'No se pudo crear la obra y su función.');
     } finally {
@@ -262,7 +277,6 @@ obrasContainer.addEventListener('submit', async event => {
             if (error) throw error;
         }
         await cargarAdministracion();
-        document.dispatchEvent(new Event('catalogo-actualizado'));
     } catch (error) {
         manejarError(error, 'No se pudo guardar el cambio administrativo.');
     } finally {
@@ -278,7 +292,6 @@ obrasContainer.addEventListener('click', async event => {
         const { error } = await supabase.rpc('retirar_obra', { p_obra_id: Number(button.dataset.eliminarObra) });
         if (error) throw error;
         await cargarAdministracion();
-        document.dispatchEvent(new Event('catalogo-actualizado'));
     } catch (error) {
         manejarError(error, 'No se pudo retirar la obra de la cartelera.');
     } finally {
@@ -442,7 +455,30 @@ async function descargarReporte() {
 }
 
 document.getElementById('descargarReporte').addEventListener('click', descargarReporte);
-document.addEventListener('datos-listos', verificarAcceso);
+
+document.addEventListener('click', event => {
+    const openButton = event.target.closest('[data-abrir-dialogo]');
+    if (openButton) {
+        document.getElementById(openButton.dataset.abrirDialogo).showModal();
+        return;
+    }
+
+    const closeButton = event.target.closest('[data-cerrar-dialogo]');
+    if (closeButton) closeButton.closest('dialog').close();
+});
+
+cerrarSesionButton.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+        await cerrarSesion();
+        await verificarAcceso();
+    } catch (error) {
+        manejarError(error, 'No se pudo cerrar la sesión.');
+    } finally {
+        button.disabled = false;
+    }
+});
 
 if (supabase) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {

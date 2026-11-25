@@ -21,7 +21,10 @@ La migración administrativa crea roles protegidos con RLS, asigna privilegios
 a `israelmujia5@gmail.com` al registrarse (o si ya tiene cuenta), y permite a los
 administradores existentes agregar otros correos que ya tengan una cuenta.
 Después de aplicar la migración, inicia sesión con esa cuenta para acceder a
-**Administración**. Las nuevas obras, presentaciones y altas administrativas se
+**Administración**, que abre la página independiente `admin.html`. Presenta
+tres acciones principales; agregar o gestionar obras abre un panel flotante.
+La gestión también incluye la opción de otorgar privilegios a otras cuentas
+verificadas. Las nuevas obras, presentaciones y altas administrativas se
 guardan en Supabase; las inscripciones a talleres también se guardan allí. Si
 Supabase no está configurado, el catálogo y las inscripciones conservan el
 modo local original, pero las reservas y las herramientas administrativas no

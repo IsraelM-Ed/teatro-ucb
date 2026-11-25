@@ -127,9 +127,18 @@ body::after {
 .sesion-nav {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    white-space: nowrap;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.55rem 0.75rem;
+    max-width: 280px;
     font-size: 22px;
+}
+
+.sesion-nav > span {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .sesion-nav a,
@@ -138,6 +147,14 @@ body::after {
     font: inherit;
     text-decoration: underline;
     text-underline-offset: 0.2em;
+}
+
+.sesion-nav .sesion-admin-link {
+    padding: 0.15rem 0.55rem;
+    border: 1px solid rgba(212, 175, 55, 0.7);
+    border-radius: 999px;
+    font-size: 0.72em;
+    text-decoration: none;
 }
 
 .sesion-nav button {
@@ -710,176 +727,6 @@ body::after {
     font-weight: 600;
 }
 
-#administracion[hidden] {
-    display: none;
-}
-
-.admin-estado {
-    max-width: var(--ancho);
-    margin: 0 auto 1rem;
-    color: var(--color-oro);
-}
-
-.admin-estado-error {
-    color: #ff8a80;
-}
-
-.admin-panel {
-    display: grid;
-    gap: 1.25rem;
-    max-width: var(--ancho);
-    margin-inline: auto;
-}
-
-.admin-bloque,
-.admin-obra {
-    min-width: 0;
-    padding: clamp(1rem, 2.5vw, 1.5rem);
-    background: rgba(25, 16, 16, 0.92);
-    border: 1px solid rgba(212, 175, 55, 0.35);
-    border-radius: 15px;
-}
-
-.admin-bloque h3 {
-    margin-bottom: 0.75rem;
-}
-
-.admin-form {
-    display: grid;
-    gap: 0.6rem;
-}
-
-.admin-form input,
-.admin-form select,
-.admin-form textarea {
-    width: 100%;
-    min-width: 0;
-    padding: 0.7rem;
-    color: var(--color-texto);
-    background: #0e0e0e;
-    border: 1px solid #514545;
-    border-radius: var(--radio);
-    font: inherit;
-}
-
-.admin-form textarea {
-    resize: vertical;
-}
-
-.admin-form .btn {
-    justify-self: start;
-    margin-top: 0.3rem;
-}
-
-.admin-horario {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
-}
-
-.admin-horario label,
-.admin-form-obra label {
-    min-width: 0;
-    margin: 0;
-}
-
-.admin-lista {
-    display: grid;
-    gap: 1rem;
-}
-
-.admin-obra h4 {
-    margin-bottom: 0.75rem;
-    font-size: 1.5rem;
-}
-
-.admin-obra h5 {
-    margin: 0.7rem 0 0.3rem;
-    color: var(--color-oro);
-}
-
-.admin-form-obra {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.admin-form-obra label:nth-child(3),
-.admin-form-obra label:nth-child(4),
-.admin-form-obra .admin-acciones {
-    grid-column: 1 / -1;
-}
-
-.admin-acciones {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem;
-}
-
-.admin-acciones .btn {
-    margin-top: 0;
-}
-
-.btn-eliminar {
-    border-color: #e85c5c;
-    color: #ff9a9a;
-}
-
-.btn-eliminar:hover {
-    background: rgba(232, 92, 92, 0.15);
-}
-
-.admin-funciones {
-    margin-top: 0.8rem;
-}
-
-.admin-funcion {
-    display: grid;
-    grid-template-columns: minmax(100px, 0.7fr) repeat(2, minmax(160px, 1fr)) auto;
-    align-items: end;
-    gap: 0.6rem;
-    padding: 0.75rem 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.admin-campo-hora {
-    margin: 0;
-}
-
-.admin-funcion button {
-    white-space: nowrap;
-}
-
-.funcion-id,
-.admin-ayuda {
-    color: var(--color-suave);
-    overflow-wrap: anywhere;
-}
-
-.funcion-pasada,
-.funcion-cancelada {
-    grid-column: 1 / -1;
-    margin: 0;
-    color: #ff6565;
-    font-weight: 700;
-}
-
-.funcion-cancelada {
-    color: var(--color-suave);
-}
-
-.admin-lista-admins {
-    margin: 0.8rem 0 0;
-    padding-left: 1.2rem;
-}
-
-.admin-admin-form {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: end;
-}
-
-.admin-admin-form .btn {
-    margin: 0;
-}
-
 .aviso-catalogo {
     max-width: var(--ancho);
     margin: 1rem auto;
@@ -1033,25 +880,6 @@ body::after {
 
     .galeria-grid {
         grid-template-columns: 1fr;
-    }
-
-    .admin-form-obra,
-    .admin-admin-form,
-    .admin-horario,
-    .admin-funcion {
-        grid-template-columns: 1fr;
-    }
-
-    .admin-form-obra label:nth-child(3),
-    .admin-form-obra label:nth-child(4),
-    .admin-form-obra .admin-acciones,
-    .funcion-pasada,
-    .funcion-cancelada {
-        grid-column: auto;
-    }
-
-    .admin-admin-form .btn {
-        justify-self: stretch;
     }
 
     .cartelera-afiche.tarjeta {

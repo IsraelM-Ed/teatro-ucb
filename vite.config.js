@@ -16,7 +16,8 @@ export default defineConfig({
             input: {
                 index: resolve(projectRoot, 'index.html'),
                 login: resolve(projectRoot, 'login.html'),
-                registro: resolve(projectRoot, 'registro.html')
+                registro: resolve(projectRoot, 'registro.html'),
+                admin: resolve(projectRoot, 'admin.html')
             }
         }
     }
