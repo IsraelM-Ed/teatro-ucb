@@ -68,11 +68,14 @@ ejecutan automáticamente desde este repositorio.
 - Entradas digitales QR con identificador aleatorio, descarga y cancelación de
   reservas conservando su historial.
 - Vista esquemática de butaca y disponibilidad en tiempo real (la tabla
-  `disponibilidad_butacas` debe estar incluida en la publicación
-  `supabase_realtime`).
+  `disponibilidad_butacas` representa cada butaca ocupada por función; la
+  matriz A-F se actualiza al recibir cambios de Supabase Realtime. La tabla debe
+  estar incluida en la publicación `supabase_realtime`.
 - Catálogo de obras pasadas e inscripciones a talleres.
 - Panel administrativo independiente en `admin.html`, con altas y edición de
-  obras, funciones, permisos y reportes.
+  obras, funciones, permisos, un resumen de actividad y reportes.
+- Selección de butacas animada, notificaciones toast y placeholders skeleton
+  durante las cargas.
 - GitHub Pages se configura con la acción del repositorio. `npm run build`
   genera los archivos de publicación en `dist/`; la carpeta generada no se
   versiona.

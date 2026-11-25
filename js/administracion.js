@@ -12,6 +12,8 @@ const buscarObrasInput = document.getElementById('buscarObras');
 const obrasSinResultados = document.getElementById('adminObrasSinResultados');
 const imagenInput = document.getElementById('adminImagen');
 const imagenPreview = document.getElementById('adminImagenPreview');
+const metricasDashboard = document.getElementById('adminMetricas');
+const proximasLista = document.getElementById('adminProximasLista');
 const horarios = ['15:00', '16:30', '18:00', '19:30', '20:00'];
 let verificacion = 0;
 let imagenPreviewUrl = null;
@@ -111,7 +113,7 @@ async function verificarAcceso() {
 
 async function cargarAdministracion() {
     mostrarEstado('Cargando datos administrativos...');
-    const [obrasResult, funcionesResult, adminsResult, user] = await Promise.all([
+    const [obrasResult, funcionesResult, adminsResult, reservasResult, salasResult, talleresResult, user] = await Promise.all([
         supabase.from('obras')
             .select('id, titulo, director, duracion_minutos, sinopsis, video_url, activa')
             .order('id'),
@@ -119,10 +121,20 @@ async function cargarAdministracion() {
             .select('id, obra_id, sala_id, inicio, salida, estado')
             .order('inicio'),
         supabase.from('administradores').select('email').order('email'),
+        supabase.from('reservas').select('funcion_id, estado'),
+        supabase.from('salas').select('id, capacidad, activa'),
+        supabase.from('talleres').select('id, activo'),
         usuarioActual()
     ]);
-    const failed = [obrasResult, funcionesResult, adminsResult].find(result => result.error);
+    const failed = [obrasResult, funcionesResult, adminsResult, reservasResult, salasResult, talleresResult].find(result => result.error);
     if (failed?.error) throw failed.error;
+    pintarDashboardAdmin(
+        obrasResult.data,
+        funcionesResult.data,
+        reservasResult.data,
+        salasResult.data,
+        talleresResult.data
+    );
     pintarAdminObras(obrasResult.data, funcionesResult.data);
     const principal = user?.email?.toLowerCase() === 'israelmujia5@gmail.com';
     administradoresContainer.replaceChildren(...adminsResult.data.map(admin => {
@@ -137,6 +149,76 @@ async function cargarAdministracion() {
         return item;
     }));
     mostrarEstado('Los cambios quedan guardados en Supabase. Las funciones pasadas se conservan para las estadísticas.');
+}
+
+function pintarDashboardAdmin(obras, funciones, reservas, salas, talleres) {
+    const ahora = Date.now();
+    const obrasPorId = new Map(obras.map(obra => [obra.id, obra]));
+    const salasPorId = new Map(salas.map(sala => [sala.id, sala]));
+    const funcionesProximas = funciones
+        .filter(funcion => {
+            const obra = obrasPorId.get(funcion.obra_id);
+            return obra && funcionEnCartelera(funcion, obra, ahora);
+        })
+        .sort((a, b) => instanteLocal(a.inicio) - instanteLocal(b.inicio));
+    const funcionesProximasIds = new Set(funcionesProximas.map(funcion => funcion.id));
+    const obrasProximasIds = new Set(funcionesProximas.map(funcion => funcion.obra_id));
+    const reservasProximas = reservas.filter(reserva =>
+        reserva.estado === 'confirmada' && funcionesProximasIds.has(reserva.funcion_id));
+    const reservasPorFuncion = new Map();
+    for (const reserva of reservasProximas) {
+        reservasPorFuncion.set(reserva.funcion_id, (reservasPorFuncion.get(reserva.funcion_id) ?? 0) + 1);
+    }
+    const capacidadProxima = funcionesProximas.reduce((total, funcion) => {
+        const sala = salasPorId.get(funcion.sala_id);
+        return total + (sala?.activa ? sala.capacidad : 0);
+    }, 0);
+    const porcentajeOcupacion = capacidadProxima
+        ? Math.round(reservasProximas.length / capacidadProxima * 100)
+        : null;
+    const metrics = [
+        ['Obras en cartelera', obras.filter(obra => obra.activa && obrasProximasIds.has(obra.id)).length],
+        ['Próximas funciones', funcionesProximas.length],
+        ['Reservas próximas', reservasProximas.length],
+        ['Ocupación próxima', porcentajeOcupacion === null ? '—' : `${porcentajeOcupacion}%`],
+        ['Talleres activos', talleres.filter(taller => taller.activo).length]
+    ];
+
+    metricasDashboard.replaceChildren(...metrics.map(([label, value]) => {
+        const card = crearElemento('article', 'admin-metrica');
+        card.append(
+            crearElemento('span', 'admin-metrica-label', label),
+            crearElemento('strong', 'admin-metrica-valor', String(value))
+        );
+        return card;
+    }));
+    metricasDashboard.setAttribute('aria-busy', 'false');
+
+    if (!funcionesProximas.length) {
+        proximasLista.replaceChildren(crearElemento('li', 'admin-proxima-vacia', 'No hay funciones próximas programadas.'));
+    } else {
+        proximasLista.replaceChildren(...funcionesProximas.slice(0, 5).map(funcion => {
+            const obra = obrasPorId.get(funcion.obra_id);
+            const sala = salasPorId.get(funcion.sala_id);
+            const reservasFuncion = reservasPorFuncion.get(funcion.id) ?? 0;
+            const item = crearElemento('li', 'admin-proxima-funcion');
+            const details = crearElemento('div', 'admin-proxima-detalles');
+            details.append(
+                crearElemento('strong', '', obra.titulo),
+                crearElemento('span', '', new Intl.DateTimeFormat('es-BO', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short'
+                }).format(new Date(String(funcion.inicio).replace(' ', 'T'))))
+            );
+            item.append(details, crearElemento(
+                'span',
+                'admin-proxima-ocupacion',
+                `${reservasFuncion} / ${sala?.capacidad ?? '—'} butacas`
+            ));
+            return item;
+        }));
+    }
+    proximasLista.setAttribute('aria-busy', 'false');
 }
 
 function pintarAdminObras(obras, funciones) {

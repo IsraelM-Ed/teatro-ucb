@@ -94,6 +94,133 @@
     font-size: 1.1rem;
 }
 
+.admin-resumen {
+    margin: 0 0 clamp(2.5rem, 6vh, 4rem);
+}
+
+.admin-resumen > h2 {
+    margin-bottom: 1rem;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+}
+
+.admin-metricas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+    gap: 0.85rem;
+}
+
+.admin-metrica {
+    display: grid;
+    min-height: 112px;
+    align-content: space-between;
+    gap: 0.7rem;
+    padding: 1rem 1.1rem;
+    background: linear-gradient(145deg, rgba(47, 29, 15, 0.82), rgba(15, 13, 12, 0.96));
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 14px;
+    animation: admin-card-entrada 260ms ease-out both;
+}
+
+.admin-metrica-label {
+    color: var(--color-suave);
+    font-size: 0.95rem;
+}
+
+.admin-metrica-valor {
+    color: var(--color-oro);
+    font-size: clamp(1.6rem, 3vw, 2.25rem);
+    line-height: 1;
+}
+
+.admin-metrica-skeleton {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.admin-skeleton {
+    background: linear-gradient(100deg, rgba(255, 255, 255, 0.06) 20%, rgba(255, 255, 255, 0.15) 40%, rgba(255, 255, 255, 0.06) 60%);
+    background-size: 220% 100%;
+    animation: admin-skeleton-brillo 1.35s ease-in-out infinite;
+}
+
+.admin-skeleton-label {
+    width: 72%;
+    height: 1rem;
+    border-radius: 6px;
+}
+
+.admin-skeleton-number {
+    width: 38%;
+    height: 2rem;
+    border-radius: 6px;
+}
+
+.admin-proximas {
+    margin-top: 1.5rem;
+    padding: 1.15rem 1.25rem;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+}
+
+.admin-proximas h3 {
+    margin-bottom: 0.75rem;
+    font-size: 1.2rem;
+}
+
+.admin-proximas-lista {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.admin-skeleton-function {
+    height: 3.2rem;
+    border-radius: 9px;
+}
+
+.admin-proxima-funcion {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.7rem 0.85rem;
+    background: rgba(0, 0, 0, 0.22);
+    border-radius: 9px;
+    animation: admin-card-entrada 220ms ease-out both;
+}
+
+.admin-proxima-detalles {
+    display: grid;
+    gap: 0.15rem;
+}
+
+.admin-proxima-detalles span,
+.admin-proxima-ocupacion {
+    color: var(--color-suave);
+    font-size: 0.9rem;
+}
+
+.admin-proxima-ocupacion {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.admin-proxima-vacia {
+    padding: 0.6rem 0;
+    color: var(--color-suave);
+}
+
+@keyframes admin-skeleton-brillo {
+    to { background-position: -220% 0; }
+}
+
+@keyframes admin-card-entrada {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .admin-acciones-principales {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -614,6 +741,16 @@
         grid-template-columns: 1fr;
     }
 
+    .admin-proxima-funcion {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+
+    .admin-proxima-ocupacion {
+        text-align: left;
+    }
+
     .admin-accion {
         min-height: 180px;
     }
@@ -673,5 +810,13 @@
 
     .admin-dialog-footer .btn {
         width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .admin-metrica,
+    .admin-proxima-funcion,
+    .admin-skeleton {
+        animation: none;
     }
 }

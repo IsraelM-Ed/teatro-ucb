@@ -4,6 +4,7 @@ import {
     supabase,
     usuarioActual
 } from '../js/supabase.js';
+import { mostrarToast } from '../js/toasts.js';
 
 export const PRICE_PER_SEAT = 40;
 export const RESERVATION_EVENT = 'reserva-actualizada';
@@ -23,6 +24,7 @@ let confirming = false;
 let functionRequest = 0;
 let availabilityChannel = null;
 let occupancyRevision = 0;
+let lastNotifiedMessage = '';
 
 export function getReservationState() {
     return {
@@ -39,6 +41,12 @@ export function getReservationState() {
 }
 
 function publish() {
+    if (message && message !== lastNotifiedMessage) {
+        mostrarToast(message, messageType || 'info');
+        lastNotifiedMessage = message;
+    } else if (!message) {
+        lastNotifiedMessage = '';
+    }
     document.dispatchEvent(new CustomEvent(RESERVATION_EVENT, {
         detail: getReservationState()
     }));
