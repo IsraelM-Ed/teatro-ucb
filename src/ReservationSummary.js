@@ -36,7 +36,6 @@ Component({
         <button class="btn" type="button" [disabled]="!state.selectedSeats.length || state.loading || state.loadError || state.confirming" (click)="confirm()">
             Confirmar reserva
         </button>
-        <p class="mensaje" [class.error]="state.messageType === 'error'" role="status">{{ state.message }}</p>
     `
 })(ReservationSummaryComponent);
 

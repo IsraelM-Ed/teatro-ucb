@@ -5,6 +5,7 @@ import { selectFunction } from './reservation-store.js';
 const works = ref([]);
 const selectedId = ref('');
 const selectedWorkId = ref('');
+const catalogReady = ref(false);
 
 const dateLabel = date => dayjs(date).format('ddd D MMM YYYY, HH:mm');
 const functionGroups = computed(() => works.value.filter(work => String(work.id) === selectedWorkId.value).map(work => ({
@@ -16,7 +17,9 @@ const functionGroups = computed(() => works.value.filter(work => String(work.id)
 })));
 
 function loadWorks() {
-    works.value = window.TEATRO?.obras ?? [];
+    if (!window.TEATRO) return;
+    works.value = window.TEATRO.obras ?? [];
+    catalogReady.value = true;
     const requestedId = new URLSearchParams(window.location.search).get('obra');
     const selectedWork = works.value.find(work => String(work.id) === requestedId) ?? works.value[0];
     selectedWorkId.value = selectedWork ? String(selectedWork.id) : '';
@@ -65,12 +68,18 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <label for="funcion">Función</label>
-    <select id="funcion" v-model="selectedId" :disabled="!functionGroups.length">
-        <optgroup v-for="work in functionGroups" :key="work.id" :label="work.titulo">
-            <option v-for="funcion in work.funciones" :key="funcion.id" :value="funcion.id">
-                {{ dateLabel(funcion.fecha) }}
-            </option>
-        </optgroup>
-    </select>
+    <div v-if="!catalogReady" class="selector-skeleton" role="status" aria-label="Cargando funciones">
+        <span class="skeleton selector-skeleton-label"></span>
+        <span class="skeleton selector-skeleton-control"></span>
+    </div>
+    <template v-else>
+        <label for="funcion">Función</label>
+        <select id="funcion" v-model="selectedId" :disabled="!functionGroups.length">
+            <optgroup v-for="work in functionGroups" :key="work.id" :label="work.titulo">
+                <option v-for="funcion in work.funciones" :key="funcion.id" :value="funcion.id">
+                    {{ dateLabel(funcion.fecha) }}
+                </option>
+            </optgroup>
+        </select>
+    </template>
 </template>

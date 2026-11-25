@@ -22,8 +22,20 @@ function SeatMap() {
 
     return (
         <div role="group" aria-label="Mapa de butacas" aria-busy={state.loading}>
-            {state.loading && <p role="status">Cargando butacas ocupadas...</p>}
-            {rows.map((row, rowIndex) => (
+            {state.loading && (
+                <>
+                    <p className="mapa-loading" role="status">Cargando butacas...</p>
+                    <div className="mapa-skeleton" aria-hidden="true">
+                        {rows.map(row => (
+                            <div className="fila fila-skeleton" key={row.label}>
+                                <span className="skeleton fila-skeleton-label"></span>
+                                {row.seats.map(code => <span className="skeleton asiento-skeleton" key={code}></span>)}
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
+            {!state.loading && rows.map((row, rowIndex) => (
                 <div className={`fila fila-${row.label.toLowerCase()}`} key={row.label} role="group" aria-label={`Fila ${row.label}`}>
                     <span>{row.label}</span>
                     {row.seats.map((code, seatIndex) => {

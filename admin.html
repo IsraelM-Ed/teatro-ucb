@@ -35,8 +35,42 @@
     <section id="adminDashboard" hidden>
       <div class="admin-titulo">
         <p class="admin-eyebrow">Teatro UCB</p>
-        <h1>Administración</h1>
-        <p>¿Qué deseas hacer hoy?</p>
+        <h1>Panel de control</h1>
+        <p>Resumen de la actividad del teatro y accesos rápidos.</p>
+      </div>
+
+      <section class="admin-resumen" aria-labelledby="adminResumenTitulo">
+        <h2 id="adminResumenTitulo">Resumen ejecutivo</h2>
+        <div id="adminMetricas" class="admin-metricas" aria-busy="true">
+          <article class="admin-metrica admin-metrica-skeleton" aria-hidden="true">
+            <span class="admin-skeleton admin-skeleton-label"></span>
+            <span class="admin-skeleton admin-skeleton-number"></span>
+          </article>
+          <article class="admin-metrica admin-metrica-skeleton" aria-hidden="true">
+            <span class="admin-skeleton admin-skeleton-label"></span>
+            <span class="admin-skeleton admin-skeleton-number"></span>
+          </article>
+          <article class="admin-metrica admin-metrica-skeleton" aria-hidden="true">
+            <span class="admin-skeleton admin-skeleton-label"></span>
+            <span class="admin-skeleton admin-skeleton-number"></span>
+          </article>
+          <article class="admin-metrica admin-metrica-skeleton" aria-hidden="true">
+            <span class="admin-skeleton admin-skeleton-label"></span>
+            <span class="admin-skeleton admin-skeleton-number"></span>
+          </article>
+          <article class="admin-metrica admin-metrica-skeleton" aria-hidden="true">
+            <span class="admin-skeleton admin-skeleton-label"></span>
+            <span class="admin-skeleton admin-skeleton-number"></span>
+          </article>
+        </div>
+        <section class="admin-proximas" aria-labelledby="adminProximasTitulo">
+          <h3 id="adminProximasTitulo">Próximas funciones</h3>
+          <ul id="adminProximasLista" class="admin-proximas-lista" aria-busy="true">
+            <li class="admin-skeleton admin-skeleton-function" aria-hidden="true"></li>
+            <li class="admin-skeleton admin-skeleton-function" aria-hidden="true"></li>
+            <li class="admin-skeleton admin-skeleton-function" aria-hidden="true"></li>
+          </ul>
+        </section>
       </div>
 
       <div class="admin-acciones-principales">
@@ -129,6 +163,7 @@
     <div id="adminObras" class="admin-lista"></div>
   </dialog>
 
+  <div id="toastRegion" class="toast-region" aria-live="polite" aria-relevant="additions"></div>
   <script type="module" src="./js/administracion.js"></script>
 </body>
 </html>
