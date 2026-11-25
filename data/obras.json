@@ -10,7 +10,7 @@
                 { "id": "obra-1-funcion-2", "fecha": "2026-11-15T18:00" }
             ],
             "sinopsis": "Cinco hermanas encerradas por ocho años de luto bajo el mando de su madre.",
-            "video": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "video": null,
             "img": "./assets/keke1.png"
         },
         {
@@ -49,7 +49,7 @@
                 { "id": "obra-4-funcion-2", "fecha": "2026-12-13T18:00" }
             ],
             "sinopsis": "Harpagón cuida su dinero más que a su familia, y el enredo no tarda en estallar.",
-            "video": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "video": null,
             "img": "./assets/keke4.png"
         }
     ],

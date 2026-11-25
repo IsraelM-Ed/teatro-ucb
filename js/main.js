@@ -212,15 +212,15 @@ function pintarTalleres() {
     document.getElementById('listaTalleres').innerHTML = datos.talleres.map(t => `
         <article class="tarjeta taller-card" data-aos="fade-up">
             <div class="taller-imagen">
-                <img src="${assetUrl(t.img)}" alt="Escena teatral relacionada con ${t.titulo}" loading="lazy">
-                <h3>${t.titulo}</h3>
+                <img src="${escaparHtml(assetUrl(t.img))}" alt="Escena teatral relacionada con ${escaparHtml(t.titulo)}" loading="lazy">
+                <h3>${escaparHtml(t.titulo)}</h3>
             </div>
             <div class="tarjeta-cuerpo taller-cuerpo">
-                <p class="taller-horario">${t.dia}</p>
-                <p class="taller-cupos">${t.cupos} cupos disponibles</p>
+                <p class="taller-horario">${escaparHtml(t.dia)}</p>
+                <p class="taller-cupos">${escaparHtml(t.cupos)} cupos disponibles</p>
                 <hr>
-                <p class="taller-descripcion">${t.descripcion}</p>
-                <button class="btn" type="button" data-taller="${t.id}">Inscribirme</button>
+                <p class="taller-descripcion">${escaparHtml(t.descripcion)}</p>
+                <button class="btn" type="button" data-taller="${escaparHtml(t.id)}">Inscribirme</button>
             </div>
         </article>
     `).join('');
@@ -233,9 +233,14 @@ function cuentaRegresiva() {
         .filter(d => d.isAfter(dayjs()))
         .sort((a, b) => a - b)[0];
 
-    el.textContent = prox
-        ? `Próxima función el ${prox.format('D [de] MMMM')}, faltan ${prox.diff(dayjs(), 'day')} días.`
-        : 'La temporada ya terminó. Mira las obras pasadas.';
+    if (!prox) {
+        el.textContent = 'La temporada ya terminó. Mira las obras pasadas.';
+        return;
+    }
+
+    const dias = prox.startOf('day').diff(dayjs().startOf('day'), 'day');
+    const cuenta = dias === 0 ? '¡Es hoy!' : dias === 1 ? 'Mañana' : `faltan ${dias} días`;
+    el.textContent = `Próxima función ${cuenta} (${prox.format('D [de] MMMM')}).`;
 }
 
 function mapaCampus() {

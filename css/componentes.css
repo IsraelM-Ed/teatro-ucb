@@ -216,6 +216,15 @@ input:invalid:not(:placeholder-shown) {
     color: var(--color-oro);
 }
 
+.reserva-framework-status {
+    color: var(--color-suave);
+    font-size: 0.95rem;
+}
+
+.reserva-framework-error {
+    color: #ff8a80;
+}
+
 .sala {
     overflow-x: auto;
 }
@@ -236,10 +245,85 @@ input:invalid:not(:placeholder-shown) {
 
 .mapa {
     display: grid;
+    position: relative;
     gap: 8px;
     width: max-content;
     margin: auto;
     padding: 0.25rem 0.5rem 0.5rem;
+}
+
+.vista-butaca {
+    width: min(100%, 340px);
+    margin: 1rem auto 0;
+    padding: 0.9rem;
+    color: var(--color-texto);
+    background: rgba(0, 0, 0, 0.76);
+    border: 1px solid rgba(212, 175, 55, 0.55);
+    border-radius: var(--radio);
+    text-align: center;
+    animation: aparecer-vista 160ms ease-out;
+}
+
+.vista-butaca p {
+    margin-bottom: 0.7rem;
+}
+
+.vista-butaca small {
+    display: block;
+    margin-top: 0.5rem;
+    color: var(--color-suave);
+}
+
+.vista-escenario-marco {
+    display: grid;
+    min-height: 100px;
+    overflow: hidden;
+    place-items: center;
+    perspective: 320px;
+    background:
+        radial-gradient(ellipse at 50% 100%, rgba(212, 175, 55, 0.18), transparent 58%),
+        linear-gradient(180deg, #191313, #30221e);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 9px;
+}
+
+.vista-escenario-mini {
+    display: grid;
+    width: 76%;
+    height: 55px;
+    place-items: center;
+    color: #f1ece4;
+    background: linear-gradient(180deg, #7d2632, #40131d);
+    border: 2px solid rgba(212, 175, 55, 0.75);
+    box-shadow: 0 0 24px rgba(212, 175, 55, 0.25);
+    font-size: 0.82rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    transform: perspective(320px) rotateX(10deg);
+    transition: transform 160ms ease;
+}
+
+.vista-izquierda .vista-escenario-mini {
+    transform: perspective(320px) rotateY(-14deg) rotateX(9deg);
+}
+
+.vista-derecha .vista-escenario-mini {
+    transform: perspective(320px) rotateY(14deg) rotateX(9deg);
+}
+
+.vista-fila-cerca .vista-escenario-mini {
+    width: 86%;
+    height: 62px;
+}
+
+.vista-fila-lejos .vista-escenario-mini {
+    width: 62%;
+    height: 45px;
+}
+
+@keyframes aparecer-vista {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .fila {
@@ -257,6 +341,7 @@ input:invalid:not(:placeholder-shown) {
 }
 
 .asiento {
+    --seat-offset: 0px;
     width: 34px;
     height: 32px;
     border: 2px solid #d4af37;
@@ -264,13 +349,33 @@ input:invalid:not(:placeholder-shown) {
     border-radius: 8px 8px 4px 4px;
     cursor: pointer;
     transition: transform 0.15s;
+    transform: translateY(var(--seat-offset));
     color: var(--color-texto);
     font-size: 0.78rem;
     font-weight: 600;
 }
 
 .asiento:hover:not(:disabled) {
-    transform: scale(1.12);
+    transform: translateY(var(--seat-offset)) scale(1.12);
+}
+
+.asiento[data-curva="0"],
+.asiento[data-curva="9"] {
+    --seat-offset: 7px;
+}
+
+.asiento[data-curva="1"],
+.asiento[data-curva="8"] {
+    --seat-offset: 4px;
+}
+
+.asiento[data-curva="2"],
+.asiento[data-curva="7"] {
+    --seat-offset: 1px;
+}
+
+.asiento[data-pasillo="despues"] {
+    margin-right: 0.8rem;
 }
 
 .asiento.ocupado,

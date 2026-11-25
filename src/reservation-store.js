@@ -1,12 +1,14 @@
 import {
     butacasOcupadas,
     confirmarReserva as guardarReserva,
+    supabase,
     usuarioActual
 } from '../js/supabase.js';
 
 export const PRICE_PER_SEAT = 40;
 export const RESERVATION_EVENT = 'reserva-actualizada';
-export const RESERVATION_CONFIRMED_EVENT = 'reserva-confirmada';
+export const RESERVATION_CHANGED_EVENT = 'reserva-cambiada';
+export const RESERVATION_CONFIRMED_EVENT = RESERVATION_CHANGED_EVENT;
 const ROWS = ['A', 'B', 'C', 'D', 'E', 'F'];
 const COLUMNS = 10;
 
@@ -19,6 +21,8 @@ let loading = false;
 let loadError = false;
 let confirming = false;
 let functionRequest = 0;
+let availabilityChannel = null;
+let occupancyRevision = 0;
 
 export function getReservationState() {
     return {
@@ -43,7 +47,13 @@ function publish() {
 export async function selectFunction(selectedFunction) {
     if (currentFunction?.id === selectedFunction?.id) return;
 
+    if (availabilityChannel) {
+        supabase?.removeChannel(availabilityChannel);
+        availabilityChannel = null;
+    }
+
     const request = ++functionRequest;
+    occupancyRevision = 0;
     currentFunction = selectedFunction;
     selectedSeats = new Set();
     occupiedSeats = new Set();
@@ -55,10 +65,11 @@ export async function selectFunction(selectedFunction) {
 
     if (!selectedFunction) return;
 
+    const revisionAtRequest = occupancyRevision;
     try {
         const seats = await butacasOcupadas(selectedFunction.id);
         if (request !== functionRequest) return;
-        occupiedSeats = new Set(seats);
+        if (occupancyRevision === revisionAtRequest) occupiedSeats = new Set(seats);
     } catch (error) {
         if (request !== functionRequest) return;
         loadError = true;
@@ -70,6 +81,69 @@ export async function selectFunction(selectedFunction) {
             publish();
         }
     }
+
+    if (request === functionRequest && supabase) subscribeToAvailability(selectedFunction.id, request);
+}
+
+function subscribeToAvailability(functionId, request) {
+    availabilityChannel = supabase
+        .channel(`disponibilidad-${functionId}`)
+        .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'disponibilidad_butacas',
+            filter: `funcion_id=eq.${functionId}`
+        }, payload => {
+            if (request !== functionRequest) return;
+            occupancyRevision++;
+            if (payload.eventType === 'INSERT') {
+                const seat = payload.new.butaca;
+                occupiedSeats.add(seat);
+                if (selectedSeats.delete(seat)) {
+                    message = `La butaca ${seat} acaba de ser reservada por otra persona. Se quitó de tu selección.`;
+                    messageType = 'error';
+                }
+            }
+            if (payload.eventType === 'DELETE') occupiedSeats.delete(payload.old.butaca);
+            publish();
+        })
+        .subscribe(status => {
+            if (request !== functionRequest) return;
+            if (status === 'SUBSCRIBED') {
+                void actualizarDisponibilidad(functionId, request);
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+                console.error(`No se pudo suscribir a la disponibilidad en vivo de ${functionId}: ${status}`);
+                message = 'La actualización en vivo no está disponible; vuelve a seleccionar la función para actualizar el mapa.';
+                messageType = 'error';
+                publish();
+            }
+        });
+}
+
+async function actualizarDisponibilidad(functionId, request) {
+    const revisionAtRequest = occupancyRevision;
+    try {
+        const seats = await butacasOcupadas(functionId);
+        if (request !== functionRequest || revisionAtRequest !== occupancyRevision) return;
+        occupiedSeats = new Set(seats);
+        if (loadError) {
+            loadError = false;
+            message = '';
+            messageType = '';
+        }
+        publish();
+    } catch (error) {
+        if (request !== functionRequest) return;
+        console.error('No se pudo reconciliar el mapa de butacas con Supabase Realtime.', error);
+        message = 'No se pudo actualizar la disponibilidad en tiempo real.';
+        messageType = 'error';
+        publish();
+    }
+}
+
+export async function actualizarMapaDisponibilidad() {
+    if (!currentFunction) return;
+    await actualizarDisponibilidad(currentFunction.id, functionRequest);
 }
 
 export function toggleSeat(seatCode) {
@@ -153,3 +227,10 @@ export function getSeatRows() {
         seats: Array.from({ length: COLUMNS }, (_, index) => `${row}${index + 1}`)
     }));
 }
+
+window.addEventListener('pagehide', () => {
+    if (availabilityChannel && supabase) {
+        supabase.removeChannel(availabilityChannel);
+        availabilityChannel = null;
+    }
+}, { once: true });

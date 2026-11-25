@@ -102,13 +102,20 @@ export async function confirmarReserva(funcionId, butacas) {
   }
 }
 
+export async function cancelarReserva(reservaId) {
+  const { error } = await getSupabase().rpc('cancelar_mis_reservas', {
+    p_reserva_id: reservaId
+  });
+  if (error) throw error;
+}
+
 export async function misReservas() {
   const user = await usuarioActual();
   if (!user) return null;
 
   const { data, error } = await getSupabase()
     .from('reservas')
-    .select('id, funcion_id, butaca, created_at')
+    .select('id, funcion_id, butaca, created_at, estado, cancelada_en, ticket_token')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
   if (error) throw error;

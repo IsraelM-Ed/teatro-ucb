@@ -119,7 +119,7 @@ insert into public.obras
 values
   (1, 'La casa de Bernarda Alba', 'Federico García Lorca', 90,
    'Cinco hermanas encerradas por ocho años de luto bajo el mando de su madre.',
-   'assets/keke1.png', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', true, false, null, null, null),
+   'assets/keke1.png', null, true, false, null, null, null),
   (2, 'Esperando a Godot', 'Samuel Beckett', 90,
    'Dos hombres esperan a alguien que nunca llega y llenan el tiempo como pueden.',
    'assets/keke2.png', 'https://www.youtube.com/watch?v=GRsMsUfnxZM', true, false, null, null, null),
@@ -128,7 +128,7 @@ values
    'assets/keke3.png', 'https://www.youtube.com/watch?v=_9Ut8USvd6k', true, false, null, null, null),
   (4, 'El avaro', 'Molière', 90,
    'Harpagón cuida su dinero más que a su familia, y el enredo no tarda en estallar.',
-   'assets/keke4.png', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', true, false, null, null, null),
+   'assets/keke4.png', null, true, false, null, null, null),
   (5, 'Romeo y Julieta', 'William Shakespeare', 90, null,
    'assets/keke1.png', null, false, true, 2025, 420,
    'Una versión ágil, con un elenco joven que se lo creyó de principio a fin.'),

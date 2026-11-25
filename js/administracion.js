@@ -1,4 +1,6 @@
-import { cerrarSesion, supabase, usuarioEsAdministrador } from './supabase.js';
+import { cerrarSesion, supabase, usuarioActual, usuarioEsAdministrador } from './supabase.js';
+import { jsPDF } from 'jspdf';
+import { autoTable } from 'jspdf-autotable';
 
 const panel = document.getElementById('adminDashboard');
 const sinAcceso = document.getElementById('adminSinAcceso');
@@ -106,19 +108,31 @@ async function verificarAcceso() {
 
 async function cargarAdministracion() {
     mostrarEstado('Cargando datos administrativos...');
-    const [obrasResult, funcionesResult, adminsResult] = await Promise.all([
+    const [obrasResult, funcionesResult, adminsResult, user] = await Promise.all([
         supabase.from('obras')
             .select('id, titulo, director, duracion_minutos, sinopsis, video_url, activa')
             .order('id'),
         supabase.from('funciones')
             .select('id, obra_id, sala_id, inicio, salida, estado')
             .order('inicio'),
-        supabase.from('administradores').select('email').order('email')
+        supabase.from('administradores').select('email').order('email'),
+        usuarioActual()
     ]);
     const failed = [obrasResult, funcionesResult, adminsResult].find(result => result.error);
     if (failed?.error) throw failed.error;
     pintarAdminObras(obrasResult.data, funcionesResult.data);
-    administradoresContainer.replaceChildren(...adminsResult.data.map(admin => crearElemento('li', '', admin.email)));
+    const principal = user?.email?.toLowerCase() === 'israelmujia5@gmail.com';
+    administradoresContainer.replaceChildren(...adminsResult.data.map(admin => {
+        const item = crearElemento('li', 'admin-admin-item');
+        item.append(crearElemento('span', '', admin.email));
+        if (principal && admin.email.toLowerCase() !== 'israelmujia5@gmail.com') {
+            const removeButton = crearElemento('button', 'admin-admin-quitar', 'Quitar permisos');
+            removeButton.type = 'button';
+            removeButton.dataset.quitarAdministrador = admin.email;
+            item.append(removeButton);
+        }
+        return item;
+    }));
     mostrarEstado('Los cambios quedan guardados en Supabase. Las funciones pasadas se conservan para las estadísticas.');
 }
 
@@ -428,6 +442,23 @@ document.getElementById('formNuevoAdmin').addEventListener('submit', async event
     }
 });
 
+administradoresContainer.addEventListener('click', async event => {
+    const button = event.target.closest('[data-quitar-administrador]');
+    if (!button || !window.confirm(`¿Quitar los privilegios de administrador a ${button.dataset.quitarAdministrador}?`)) return;
+    button.disabled = true;
+    try {
+        const { error } = await supabase.rpc('quitar_administrador', {
+            p_email: button.dataset.quitarAdministrador
+        });
+        if (error) throw error;
+        await cargarAdministracion();
+    } catch (error) {
+        manejarError(error, 'No se pudieron quitar los privilegios administrativos.');
+    } finally {
+        button.disabled = false;
+    }
+});
+
 function normalizarTexto(value) {
     return String(value ?? '')
         .normalize('NFD')
@@ -443,48 +474,79 @@ function numero(value) {
     return Number(value ?? 0).toLocaleString('es-BO');
 }
 
-function crearPdf(lines) {
-    const normalized = lines
-        .map(normalizarTexto)
-        .flatMap(line => {
-            if (line.length <= 92) return [line];
-            const wrapped = [];
-            for (let index = 0; index < line.length; index += 88) {
-                wrapped.push(`${index ? '  ' : ''}${line.slice(index, index + 88)}`);
-            }
-            return wrapped;
-        });
-    const pages = [];
-    for (let index = 0; index < normalized.length; index += 45) pages.push(normalized.slice(index, index + 45));
-    const objects = [
-        '<< /Type /Catalog /Pages 2 0 R >>',
-        `<< /Type /Pages /Kids [${pages.map((_, index) => `${4 + index * 2} 0 R`).join(' ')}] /Count ${pages.length} >>`,
-        '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'
-    ];
+function tituloPdf(doc, titulo, generado) {
+    const ancho = doc.internal.pageSize.getWidth();
+    doc.setFillColor(33, 15, 15);
+    doc.rect(0, 0, ancho, 34, 'F');
+    doc.setTextColor(212, 175, 55);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('TEATRO UCB', 14, 15);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.text(titulo, 14, 25);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(`Generado: ${new Intl.DateTimeFormat('es-BO', { dateStyle: 'medium', timeStyle: 'short' }).format(generado)}`, ancho - 14, 15, { align: 'right' });
+    doc.setTextColor(35, 29, 29);
+}
 
-    pages.forEach((pageLines, index) => {
-        const pageObject = 4 + index * 2;
-        const contentObject = pageObject + 1;
-        const text = pageLines.map((line, lineIndex) => {
-            const escaped = line.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-            return `${lineIndex === 0 ? '48 794 Td' : '0 -16 Td'} (${escaped}) Tj`;
-        }).join('\n');
-        const stream = `BT /F1 10 Tf\n${text}\nET`;
-        objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents ${contentObject} 0 R >>`);
-        objects.push(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+function tablaPdf(doc, head, body, options = {}) {
+    autoTable(doc, {
+        head: [head],
+        body,
+        startY: options.startY ?? 42,
+        margin: { left: 14, right: 14 },
+        styles: { font: 'helvetica', fontSize: 8, cellPadding: 2.4, overflow: 'linebreak' },
+        headStyles: { fillColor: [91, 24, 37], textColor: [255, 255, 255], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [248, 245, 239] },
+        theme: 'grid',
+        ...options
     });
+    return doc.lastAutoTable.finalY;
+}
 
-    let pdf = '%PDF-1.4\n';
-    const offsets = [0];
-    objects.forEach((object, index) => {
-        offsets.push(pdf.length);
-        pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+function graficoBarrasPdf(doc, titulo, datos, y, formato = numero) {
+    const ancho = doc.internal.pageSize.getWidth();
+    const left = 18;
+    const usable = ancho - 36;
+    const baseY = y + 52;
+    const max = Math.max(1, ...datos.map(item => item.valor));
+    const barWidth = datos.length ? Math.min(24, usable / datos.length - 6) : 0;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text(titulo, left, y);
+    doc.setDrawColor(120, 110, 100);
+    doc.line(left, baseY, ancho - left, baseY);
+    datos.forEach((item, index) => {
+        const x = left + index * (usable / Math.max(datos.length, 1)) + 3;
+        const height = item.valor / max * 34;
+        doc.setFillColor(160, 45, 54);
+        doc.rect(x, baseY - height, barWidth, height, 'F');
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(35, 29, 29);
+        doc.text(formato(item.valor), x + barWidth / 2, baseY - height - 2, { align: 'center' });
+        doc.text(String(item.etiqueta).slice(0, 12), x + barWidth / 2, baseY + 5, { align: 'center', maxWidth: usable / Math.max(datos.length, 1) });
     });
-    const xrefOffset = pdf.length;
-    pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-    for (const offset of offsets.slice(1)) pdf += `${String(offset).padStart(10, '0')} 00000 n \n`;
-    pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-    return new Blob([pdf], { type: 'application/pdf' });
+    doc.setTextColor(35, 29, 29);
+    return baseY + 13;
+}
+
+function piePdf(doc, generado) {
+    const total = doc.getNumberOfPages();
+    const ancho = doc.internal.pageSize.getWidth();
+    const alto = doc.internal.pageSize.getHeight();
+    for (let page = 1; page <= total; page++) {
+        doc.setPage(page);
+        doc.setDrawColor(212, 175, 55);
+        doc.line(14, alto - 13, ancho - 14, alto - 13);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(100, 92, 83);
+        doc.text(`Teatro UCB · ${generado.toLocaleDateString('es-BO')}`, 14, alto - 7);
+        doc.text(`Página ${page} de ${total}`, ancho - 14, alto - 7, { align: 'right' });
+    }
 }
 
 async function descargarReporte() {
@@ -493,11 +555,11 @@ async function descargarReporte() {
     mostrarEstado('Preparando el reporte...');
     try {
         const [obrasResult, funcionesResult, reservasResult, salasResult, talleresResult, inscripcionesResult] = await Promise.all([
-            supabase.from('obras').select('id, titulo, activa'),
+            supabase.from('obras').select('id, titulo, activa, duracion_minutos'),
             supabase.from('funciones').select('id, obra_id, sala_id, inicio, salida, estado'),
-            supabase.from('reservas').select('id, funcion_id, butaca, created_at'),
-            supabase.from('salas').select('id, nombre, capacidad'),
-            supabase.from('talleres').select('id, titulo, activo'),
+            supabase.from('reservas').select('id, funcion_id, butaca, created_at, estado, cancelada_en'),
+            supabase.from('salas').select('id, nombre, capacidad, activa'),
+            supabase.from('talleres').select('id, titulo, activo, created_at'),
             supabase.from('inscripciones_talleres').select('id, taller_id, estado, created_at')
         ]);
         const failed = [obrasResult, funcionesResult, reservasResult, salasResult, talleresResult, inscripcionesResult].find(result => result.error);
@@ -510,55 +572,185 @@ async function descargarReporte() {
         const talleres = talleresResult.data;
         const inscripciones = inscripcionesResult.data;
         const now = new Date();
-        const funcionesPasadas = funcion => new Date(String(funcion.salida ?? funcion.inicio).replace(' ', 'T')) < now;
-        const lineas = [
-            'TEATRO UCB - REPORTE ADMINISTRATIVO',
-            `Generado: ${new Intl.DateTimeFormat('es-BO', { dateStyle: 'full', timeStyle: 'short' }).format(now)}`,
-            '',
-            '1. REPORTE DE RESERVAS',
-            `Reservas/entradas registradas: ${numero(reservas.length)}`,
-            ...funciones.map(funcion => {
-                const obra = obras.find(item => item.id === funcion.obra_id);
-                const count = reservas.filter(reserva => reserva.funcion_id === funcion.id).length;
-                return `${obra?.titulo ?? 'Obra'} | ${new Date(String(funcion.inicio).replace(' ', 'T')).toLocaleString('es-BO')} | ${numero(count)} entradas`;
-            }),
-            '',
-            '2. REPORTE DE OCUPACION (CAPACIDAD)',
-            ...funciones.map(funcion => {
-                const sala = salas.get(funcion.sala_id);
-                const ocupadas = reservas.filter(reserva => reserva.funcion_id === funcion.id).length;
-                const capacidad = sala?.capacidad ?? 0;
-                const porcentaje = capacidad ? Math.round(ocupadas / capacidad * 100) : 0;
-                const obra = obras.find(item => item.id === funcion.obra_id);
-                return `${obra?.titulo ?? 'Obra'} | ${new Date(String(funcion.inicio).replace(' ', 'T')).toLocaleString('es-BO')} | ${ocupadas}/${capacidad} butacas (${porcentaje}%)`;
-            }),
-            '',
-            '3. REPORTE DE OBRAS (FUNCIONES Y PRESENTACIONES)',
-            `Obras registradas: ${numero(obras.length)} | Presentaciones: ${numero(funciones.length)}`,
-            `Futuras/programadas: ${numero(funciones.filter(funcion => funcion.estado !== 'cancelada' && !funcionesPasadas(funcion)).length)} | Pasadas: ${numero(funciones.filter(funcionesPasadas).length)} | Canceladas: ${numero(funciones.filter(funcion => funcion.estado === 'cancelada').length)}`,
-            ...obras.map(obra => {
-                const deObra = funciones.filter(funcion => funcion.obra_id === obra.id);
-                const pasadas = deObra.filter(funcionesPasadas).length;
-                const futuras = deObra.filter(funcion => funcion.estado !== 'cancelada' && !funcionesPasadas(funcion)).length;
-                const canceladas = deObra.filter(funcion => funcion.estado === 'cancelada').length;
-                return `${obra.titulo} | ${deObra.length} presentaciones | ${futuras} futuras | ${pasadas} pasadas | ${canceladas} canceladas | ${obra.activa ? 'Activa' : 'Retirada'}`;
-            }),
-            '',
-            '4. REPORTE DE TALLERES',
-            `Talleres registrados: ${numero(talleres.length)} | Inscripciones: ${numero(inscripciones.length)}`,
-            ...talleres.map(taller => {
-                const counts = inscripciones.filter(item => item.taller_id === taller.id);
-                return `${taller.titulo} | ${counts.length} inscripciones | ${taller.activo ? 'Activo' : 'Inactivo'}`;
-            })
-        ];
+        const obraPorId = new Map(obras.map(obra => [obra.id, obra]));
+        const salaPorId = new Map(salas.map(sala => [sala.id, sala]));
+        const reservasPorFuncion = new Map();
+        const funcionesPorObra = new Map();
+        const reservasPorObra = new Map();
+        for (const reserva of reservas) {
+            const list = reservasPorFuncion.get(reserva.funcion_id) ?? [];
+            list.push(reserva);
+            reservasPorFuncion.set(reserva.funcion_id, list);
+            const funcion = funciones.find(item => item.id === reserva.funcion_id);
+            if (funcion) {
+                const obraReservations = reservasPorObra.get(funcion.obra_id) ?? [];
+                obraReservations.push(reserva);
+                reservasPorObra.set(funcion.obra_id, obraReservations);
+            }
+        }
 
-        const blob = crearPdf(lineas);
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `reporte-administrativo-teatro-ucb-${now.toISOString().slice(0, 10)}.pdf`;
-        link.click();
-        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        const finFuncion = funcion => {
+            if (funcion.salida) return String(funcion.salida).replace(' ', 'T');
+            const obra = obraPorId.get(funcion.obra_id);
+            return sumarMinutos(String(funcion.inicio).replace('T', ' '), obra?.duracion_minutos ?? 0).replace(' ', 'T');
+        };
+        const esPasada = funcion => funcion.estado === 'finalizada' || new Date(finFuncion(funcion)) <= now;
+        const confirmadas = reservas.filter(reserva => reserva.estado === 'confirmada');
+        const canceladas = reservas.filter(reserva => reserva.estado === 'cancelada');
+        const reservasPorMes = new Map();
+        for (const reserva of reservas) {
+            const mes = reserva.created_at.slice(0, 7);
+            reservasPorMes.set(mes, (reservasPorMes.get(mes) ?? 0) + 1);
+        }
+        const meses = [...reservasPorMes.entries()].sort(([a], [b]) => a.localeCompare(b)).slice(-12);
+
+        const resumenFunciones = funciones.map(funcion => {
+            const obra = obraPorId.get(funcion.obra_id);
+            const reservasFuncion = reservasPorFuncion.get(funcion.id) ?? [];
+            const sala = salaPorId.get(funcion.sala_id);
+            const capacidad = sala?.capacidad ?? 0;
+            const entradasActivas = reservasFuncion.filter(reserva => reserva.estado === 'confirmada').length;
+            return {
+                funcion,
+                obra,
+                sala,
+                reservasFuncion,
+                entradasActivas,
+                capacidad,
+                ocupacion: capacidad ? entradasActivas / capacidad * 100 : null,
+                pasada: esPasada(funcion)
+            };
+        });
+
+        const doc = new jsPDF({ format: 'a4', unit: 'mm' });
+        tituloPdf(doc, 'Resumen ejecutivo', now);
+        const activeCapacity = salas.filter(sala => sala.activa).reduce((sum, sala) => sum + sala.capacidad, 0);
+        tablaPdf(doc, ['Indicador', 'Resultado'], [
+            ['Obras registradas', numero(obras.length)],
+            ['Funciones registradas', numero(funciones.length)],
+            ['Reservas históricas', numero(reservas.length)],
+            ['Reservas confirmadas / canceladas', `${numero(confirmadas.length)} / ${numero(canceladas.length)}`],
+            ['Entradas con reserva confirmada (no son pagos)', numero(confirmadas.length)],
+            ['Capacidad de salas activas', numero(activeCapacity)],
+            ['Talleres / inscripciones registradas', `${numero(talleres.length)} / ${numero(inscripciones.length)}`]
+        ], { startY: 43, columnStyles: { 0: { cellWidth: 105 } } });
+        if (meses.length) {
+            graficoBarrasPdf(doc, 'Evolución mensual de reservas creadas', meses.map(([mes, valor]) => ({
+                etiqueta: mes,
+                valor
+            })), doc.lastAutoTable.finalY + 18);
+        } else {
+            doc.setFontSize(10);
+            doc.text('No existen reservas registradas para mostrar una evolución.', 18, doc.lastAutoTable.finalY + 18);
+        }
+
+        doc.addPage();
+        tituloPdf(doc, '1. Reporte de reservas', now);
+        tablaPdf(doc, ['Obra', 'Fecha y hora', 'Confirmadas', 'Canceladas', 'Total'], resumenFunciones.map(item => [
+            item.obra?.titulo ?? 'Obra sin datos',
+            new Date(String(item.funcion.inicio).replace(' ', 'T')).toLocaleString('es-BO'),
+            numero(item.reservasFuncion.filter(reserva => reserva.estado === 'confirmada').length),
+            numero(item.reservasFuncion.filter(reserva => reserva.estado === 'cancelada').length),
+            numero(item.reservasFuncion.length)
+        ]));
+        doc.setFontSize(8);
+        doc.text('La base registra reservas de butacas; no contiene confirmación de pagos.', 14, Math.min(doc.lastAutoTable.finalY + 8, 280));
+
+        doc.addPage();
+        tituloPdf(doc, '2. Reporte de ocupación', now);
+        const ocupacionRows = resumenFunciones.map(item => [
+            item.obra?.titulo ?? 'Obra sin datos',
+            new Date(String(item.funcion.inicio).replace(' ', 'T')).toLocaleString('es-BO'),
+            item.sala?.nombre ?? 'Sala no disponible',
+            `${numero(item.entradasActivas)} / ${numero(item.capacidad)}`,
+            item.ocupacion === null ? 'No disponible' : `${item.ocupacion.toFixed(1)}%`,
+            item.capacidad ? numero(Math.max(0, item.capacidad - item.entradasActivas)) : 'No disponible'
+        ]);
+        tablaPdf(doc, ['Obra', 'Función', 'Sala', 'Ocupadas / capacidad', 'Ocupación', 'Libres'], ocupacionRows);
+        const conOcupacion = resumenFunciones.filter(item => item.ocupacion !== null && item.funcion.estado !== 'cancelada');
+        const mayorOcupacion = conOcupacion.reduce((best, item) => !best || item.ocupacion > best.ocupacion ? item : best, null);
+        const menorOcupacion = conOcupacion.reduce((best, item) => !best || item.ocupacion < best.ocupacion ? item : best, null);
+        const occupancyWork = obras.map(obra => {
+            const items = resumenFunciones.filter(item => item.funcion.obra_id === obra.id && item.ocupacion !== null);
+            const avg = items.length ? items.reduce((sum, item) => sum + item.ocupacion, 0) / items.length : 0;
+            return { etiqueta: obra.titulo, valor: avg };
+        }).filter(item => item.valor > 0).sort((a, b) => b.valor - a.valor).slice(0, 8);
+        const chartY = doc.lastAutoTable.finalY + 16;
+        if (chartY > 215) doc.addPage();
+        const yForOccupancyChart = chartY > 215 ? 45 : chartY;
+        if (occupancyWork.length) graficoBarrasPdf(doc, 'Ocupación media por obra (%)', occupancyWork, yForOccupancyChart, value => `${Math.round(value)}%`);
+        const bestLine = mayorOcupacion
+            ? `Mayor ocupación: ${mayorOcupacion.obra?.titulo ?? 'Obra'} (${mayorOcupacion.ocupacion.toFixed(1)}%).`
+            : 'No hay funciones con capacidad registrada.';
+        const lowestLine = menorOcupacion
+            ? `Menor ocupación: ${menorOcupacion.obra?.titulo ?? 'Obra'} (${menorOcupacion.ocupacion.toFixed(1)}%).`
+            : '';
+        doc.setFontSize(9);
+        doc.text([bestLine, lowestLine].filter(Boolean), 14, Math.min(yForOccupancyChart + 70, 282));
+
+        doc.addPage();
+        tituloPdf(doc, '3. Reporte de obras', now);
+        const workRows = obras.map(obra => {
+            const functions = funciones.filter(funcion => funcion.obra_id === obra.id);
+            const active = functions.filter(funcion => funcion.estado === 'programada' && !esPasada(funcion)).length;
+            const past = functions.filter(funcion => funcion.estado !== 'cancelada' && esPasada(funcion)).length;
+            const cancelled = functions.filter(funcion => funcion.estado === 'cancelada').length;
+            const reservationCount = (reservasPorObra.get(obra.id) ?? []).filter(reserva => reserva.estado === 'confirmada').length;
+            const status = !obra.activa
+                ? 'Retirada'
+                : active
+                    ? 'En cartelera'
+                    : past
+                        ? 'Obra pasada'
+                        : 'Sin funciones vigentes';
+            return [
+                obra.titulo,
+                status,
+                numero(functions.length),
+                numero(past),
+                numero(cancelled),
+                numero(reservationCount)
+            ];
+        });
+        tablaPdf(doc, ['Obra', 'Estado', 'Funciones', 'Realizadas', 'Retiradas', 'Reservas confirmadas'], workRows);
+        const topWorks = [...obras].map(obra => ({
+            etiqueta: obra.titulo,
+            valor: (reservasPorObra.get(obra.id) ?? []).filter(reserva => reserva.estado === 'confirmada').length
+        })).sort((a, b) => b.valor - a.valor).slice(0, 8);
+        let worksChartY = doc.lastAutoTable.finalY + 16;
+        if (worksChartY > 215) {
+            doc.addPage();
+            tituloPdf(doc, '3.1 Obras más solicitadas', now);
+            worksChartY = 48;
+        }
+        if (topWorks.length) graficoBarrasPdf(doc, 'Reservas confirmadas por obra', topWorks, worksChartY);
+
+        doc.addPage();
+        tituloPdf(doc, '4. Reporte de talleres', now);
+        const workshopRows = talleres.map(taller => {
+            const registrations = inscripciones.filter(item => item.taller_id === taller.id);
+            const byStatus = status => registrations.filter(item => item.estado === status).length;
+            return [
+                taller.titulo,
+                taller.activo ? 'Activo' : 'Inactivo',
+                taller.created_at ? new Date(taller.created_at).toLocaleDateString('es-BO') : 'No disponible',
+                numero(registrations.length),
+                numero(byStatus('pendiente')),
+                numero(byStatus('aceptada')),
+                numero(byStatus('rechazada') + byStatus('cancelada'))
+            ];
+        });
+        tablaPdf(doc, ['Taller', 'Estado', 'Registrado', 'Inscripciones', 'Pendientes', 'Aceptadas', 'Rechazadas/canceladas'], workshopRows);
+        doc.setFontSize(8);
+        doc.text(
+            'Limitación de datos: el esquema registra la fecha de creación y estado del taller, pero no fecha de realización ni asistencia efectiva. Las inscripciones no se presentan como asistencia.',
+            14,
+            Math.min(doc.lastAutoTable.finalY + 8, 280),
+            { maxWidth: 180 }
+        );
+
+        piePdf(doc, now);
+        doc.save(`reporte-administrativo-teatro-ucb-${now.toISOString().slice(0, 10)}.pdf`);
         mostrarEstado('Reporte PDF descargado.');
     } catch (error) {
         manejarError(error, 'No se pudo generar el reporte administrativo.');

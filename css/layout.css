@@ -335,6 +335,33 @@ body::after {
     font-size: 1.5rem;
 }
 
+.entrada-qr {
+    width: 180px;
+    max-width: 100%;
+    padding: 0.45rem;
+    background: white;
+    border-radius: 8px;
+}
+
+.entrada-descargar,
+.entrada-cancelar {
+    justify-self: start;
+}
+
+.entrada-cancelar {
+    color: #ff9a9a;
+    border-color: #e85c5c;
+}
+
+.entrada-cancelada {
+    color: #fff;
+    background: #5b5050;
+}
+
+.entrada-error {
+    color: #ff8a80;
+}
+
 .estado-entradas {
     grid-column: 1 / -1;
     padding: 1rem;

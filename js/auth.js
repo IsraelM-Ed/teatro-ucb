@@ -6,7 +6,7 @@ const modo = form.dataset.modo; // "login" | "registro"
 
 // Si ya hay sesión, ir directo a reservar
 usuarioActual()
-  .then(u => { if (u) location.href = './index.html#reservar'; })
+  .then(u => { if (u) location.href = './index.html#reserva'; })
   .catch(err => { msg.textContent = traducir(err.message); });
 
 form.addEventListener('submit', async (e) => {
@@ -28,7 +28,7 @@ form.addEventListener('submit', async (e) => {
     } else {
       await iniciarSesion(datos);
     }
-    location.href = './index.html#reservar';
+    location.href = './index.html#reserva';
   } catch (err) {
     msg.textContent = traducir(err.message);
   } finally {

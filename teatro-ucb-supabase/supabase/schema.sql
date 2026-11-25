@@ -12,8 +12,18 @@ create table if not exists public.reservas (
   funcion_id text not null,
   butaca text not null,
   created_at timestamptz not null default now(),
-  unique (funcion_id, butaca)   -- una butaca no se puede reservar dos veces
+  estado text not null default 'confirmada'
+    check (estado in ('confirmada', 'cancelada')),
+  cancelada_en timestamptz,
+  ticket_token uuid not null default gen_random_uuid()
 );
+
+create unique index if not exists reservas_butaca_confirmada_unica_idx
+  on public.reservas (funcion_id, butaca)
+  where estado = 'confirmada';
+
+create unique index if not exists reservas_ticket_token_unico_idx
+  on public.reservas (ticket_token);
 
 -- 3) Al registrarse un usuario, crear su perfil automáticamente
 create or replace function public.handle_new_user()
@@ -42,11 +52,10 @@ create policy "Ver mi perfil" on public.profiles
 create policy "Editar mi perfil" on public.profiles
   for update using (auth.uid() = id);
 
--- Todos pueden ver qué butacas están ocupadas (para pintar el mapa)
-create policy "Ver reservas" on public.reservas
-  for select using (true);
+-- Los usuarios solo pueden consultar sus propias reservas. La disponibilidad
+-- pública se obtiene mediante la RPC butacas_ocupadas, que solo devuelve butacas.
+create policy "Ver mis reservas" on public.reservas
+  for select to authenticated using (auth.uid() = user_id);
 -- Solo usuarios con sesión pueden reservar, y solo a su nombre
 create policy "Crear mis reservas" on public.reservas
   for insert to authenticated with check (auth.uid() = user_id);
-create policy "Cancelar mis reservas" on public.reservas
-  for delete to authenticated using (auth.uid() = user_id);
