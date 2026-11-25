@@ -51,6 +51,38 @@ export async function usuarioActual() {
   return data.session?.user ?? null;
 }
 
+export async function usuarioEsAdministrador() {
+  const user = await usuarioActual();
+  if (!user) return false;
+  const { data, error } = await getSupabase().rpc('es_administrador');
+  if (error) throw error;
+  return data === true;
+}
+
+export async function cargarCatalogoTeatro() {
+  const { data, error } = await getSupabase()
+    .from('obras')
+    .select('id, titulo, autor, director, duracion_minutos, sinopsis, img, video_url, activa, visible_galeria, anio, asistencia, resena, funciones(id, inicio, salida, estado)')
+    .order('id');
+  if (error) throw error;
+  return data;
+}
+
+export async function inscribirEnTaller({ taller_id, nombre, email, experiencia }) {
+  const user = await usuarioActual();
+  const { error } = await getSupabase().from('inscripciones_talleres').insert({
+    taller_id,
+    user_id: user?.id ?? null,
+    nombre,
+    email,
+    experiencia
+  });
+  if (error) {
+    if (error.code === '23505') throw new Error('Ya existe una inscripción para este taller y correo.');
+    throw error;
+  }
+}
+
 // ---------- Reservas (reemplazan el localStorage) ----------
 export async function butacasOcupadas(funcionId) {
   const { data, error } = await getSupabase()

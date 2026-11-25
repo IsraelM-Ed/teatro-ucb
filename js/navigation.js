@@ -1,4 +1,4 @@
-import { cerrarSesion, supabase } from './supabase.js';
+import { cerrarSesion, supabase, usuarioEsAdministrador } from './supabase.js';
 
 let activeBackgroundLayer = 'before';
 let backgroundFrame = 0;
@@ -94,8 +94,9 @@ class TeatroNavigation extends HTMLElement {
                     </ul>
                 </nav>
                 <div class="redes-nav">
-                    <img src="${base}assets/socials_options.png" alt="Instagram, Facebook y TikTok"
-                         width="128" height="56">
+                    <a href="https://www.instagram.com/ucbbolivia/" target="_blank" rel="noopener noreferrer" aria-label="Instagram oficial de la UCB">Instagram</a>
+                    <a href="https://www.facebook.com/UCBBolivia/" target="_blank" rel="noopener noreferrer" aria-label="Facebook oficial de la UCB">Facebook</a>
+                    <a href="https://www.tiktok.com/@ucbbolivia" target="_blank" rel="noopener noreferrer" aria-label="TikTok oficial de la UCB">TikTok</a>
                 </div>
                 <div class="sesion-nav" id="sesionNav" aria-live="polite">
                     <a href="${base}login.html">Sign in</a>
@@ -106,7 +107,7 @@ class TeatroNavigation extends HTMLElement {
         this.subscription?.unsubscribe();
         if (supabase) {
             const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-                this.actualizarSesion(session?.user ?? null, base);
+                window.setTimeout(() => this.actualizarSesion(session?.user ?? null, base), 0);
             });
             this.subscription = subscription;
             supabase.auth.getSession()
@@ -149,6 +150,8 @@ class TeatroNavigation extends HTMLElement {
     actualizarSesion(user, base) {
         const container = this.querySelector('#sesionNav');
         if (!container) return;
+        const request = (this.sessionRequestId ?? 0) + 1;
+        this.sessionRequestId = request;
         container.replaceChildren();
 
         if (!user) {
@@ -158,6 +161,22 @@ class TeatroNavigation extends HTMLElement {
             container.append(link);
             return;
         }
+
+        usuarioEsAdministrador()
+            .then(esAdmin => {
+                if (request !== this.sessionRequestId) return;
+                if (esAdmin) {
+                    const adminLink = document.createElement('a');
+                    adminLink.href = /\/(?:login|registro)\.html$/.test(window.location.pathname)
+                        ? `${base}index.html#administracion`
+                        : '#administracion';
+                    adminLink.textContent = 'Administración';
+                    container.append(adminLink);
+                }
+            })
+            .catch(error => {
+                console.error('No se pudo verificar el rol administrativo de la sesión.', error);
+            });
 
         const name = document.createElement('span');
         name.textContent = user.user_metadata?.nombre || user.email || 'Usuario';

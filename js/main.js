@@ -1,4 +1,5 @@
 import datosTeatro from '../data/obras.json';
+import { butacasOcupadas, cargarCatalogoTeatro, supabase } from './supabase.js';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -29,16 +30,16 @@ function pintarObraDestacada(obra) {
     }
 
     const funciones = obra.funciones.map(funcion => {
-        const salida = dayjs(funcion.fecha).add(obra.duracionMinutos, 'minute');
+        const salida = funcion.salida ? dayjs(funcion.salida) : dayjs(funcion.fecha).add(obra.duracionMinutos, 'minute');
         return `<li><time datetime="${funcion.fecha}">${fmtHora(funcion.fecha)}</time><span>–</span><time datetime="${salida.format('YYYY-MM-DDTHH:mm')}">${fmtHora(salida)}</time></li>`;
     }).join('');
     panel.classList.remove('actualizando');
     panel.innerHTML = `
         <div class="obra-destacada-contenido">
             <p class="obra-etiqueta">Obra destacada</p>
-            <h3 class="obra-destacada-titulo${obra.titulo.length > 20 ? ' titulo-largo' : ''}">${obra.titulo}</h3>
+            <h3 class="obra-destacada-titulo${obra.titulo.length > 20 ? ' titulo-largo' : ''}">${escaparHtml(obra.titulo)}</h3>
             <div class="obra-sinopsis">
-                <p>${obra.sinopsis}</p>
+                <p>${escaparHtml(obra.sinopsis)}</p>
             </div>
             <div class="obra-metricas">
                 <div class="obra-duracion">
@@ -62,13 +63,13 @@ function pintarObraDestacada(obra) {
 function pintarObras() {
     document.getElementById('listaObras').innerHTML = datos.obras.map(o => `
         <button class="tarjeta cartelera-afiche" type="button" data-obra="${o.id}"
-                aria-pressed="${o.id === obraSeleccionada.id}"
-                aria-label="Seleccionar obra ${o.titulo}">
-            <img src="${assetUrl(o.img)}" alt="Imagen de ${o.titulo}" loading="lazy">
+                aria-pressed="${o.id === obraSeleccionada?.id}"
+                aria-label="Seleccionar obra ${escaparHtml(o.titulo)}">
+            <img src="${assetUrl(o.img)}" alt="Imagen de ${escaparHtml(o.titulo)}" loading="lazy">
             <div class="tarjeta-cuerpo">
-                <h3>${o.titulo}</h3>
+                <h3>${escaparHtml(o.titulo)}</h3>
                 <p class="duracion-obra">${o.duracionMinutos} min</p>
-                <p class="autor">${o.autor}</p>
+                <p class="autor">${escaparHtml(o.director || o.autor)}</p>
                 <ul class="fechas-funcion">${o.funciones.map(f => `<li><time datetime="${f.fecha}">${fmtFechaFuncion(f.fecha)}</time></li>`).join('')}</ul>
             </div>
         </button>
@@ -144,11 +145,11 @@ function pintarGaleria() {
                 <img src="${assetUrl(p.imgSm)}" alt="Función de ${p.titulo}" loading="lazy">
             </picture>
             <div class="tarjeta-cuerpo">
-                <h3>${p.titulo}</h3>
-                <p class="fecha">${p.anio}</p>
+                    <h3>${escaparHtml(p.titulo)}</h3>
+                    <p class="fecha">${escaparHtml(String(p.anio ?? ''))}</p>
                 <details>
                     <summary>Reseña del público</summary>
-                    <p>${p.resena}</p>
+                        <p>${escaparHtml(p.resena)}</p>
                 </details>
             </div>
         </article>
@@ -312,6 +313,118 @@ function animar() {
     });
 }
 
+function escaparHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    })[character]);
+}
+
+function mostrarErrorCatalogo(error) {
+    console.error('No se pudo cargar el catálogo de Supabase; se mostrará el catálogo local.', error);
+    const aviso = document.createElement('p');
+    aviso.className = 'aviso-catalogo';
+    aviso.setAttribute('role', 'status');
+    aviso.textContent = 'No se pudo sincronizar la cartelera con la base de datos. Se muestra la información local.';
+    document.getElementById('cartelera').prepend(aviso);
+}
+
+function catalogoLocal() {
+    const ahora = dayjs();
+    const obras = [];
+    const pasadas = [...datosTeatro.pasadas];
+
+    for (const obra of datosTeatro.obras) {
+        const vigentes = [];
+        for (const funcion of obra.funciones) {
+            const salida = dayjs(funcion.fecha).add(obra.duracionMinutos, 'minute');
+            if (salida.isAfter(ahora)) {
+                vigentes.push({ ...funcion, salida: salida.format('YYYY-MM-DDTHH:mm') });
+            } else {
+                pasadas.push({
+                    titulo: obra.titulo,
+                    anio: dayjs(funcion.fecha).year(),
+                    asistencia: 0,
+                    resena: obra.sinopsis,
+                    img: obra.img,
+                    imgSm: obra.img
+                });
+            }
+        }
+        if (vigentes.length) obras.push({ ...obra, funciones: vigentes });
+    }
+
+    const pasadasUnicas = [...new Map(pasadas.map(item => [item.titulo, item])).values()];
+    return { ...datosTeatro, obras, pasadas: pasadasUnicas };
+}
+
+async function catalogoDesdeBaseDeDatos(rows) {
+    const ahora = dayjs();
+    const obras = [];
+    const pasadas = [...datosTeatro.pasadas];
+
+    for (const row of rows) {
+        const funciones = (row.funciones ?? [])
+            .filter(funcion => funcion.estado !== 'cancelada')
+            .map(funcion => {
+                const fecha = String(funcion.inicio).slice(0, 16);
+                const salida = funcion.salida
+                    ? String(funcion.salida).slice(0, 16)
+                    : dayjs(fecha).add(row.duracion_minutos, 'minute').format('YYYY-MM-DDTHH:mm');
+                return { id: funcion.id, fecha, salida };
+            });
+        const vigentes = funciones.filter(funcion => dayjs(funcion.salida).isAfter(ahora));
+        const vencidas = funciones.filter(funcion => !dayjs(funcion.salida).isAfter(ahora));
+        let asistenciaPasada = row.asistencia;
+        if ((asistenciaPasada === null || asistenciaPasada === undefined) && vencidas.length) {
+            const conteos = await Promise.all(vencidas.map(async funcion => (await butacasOcupadas(funcion.id)).length));
+            asistenciaPasada = conteos.reduce((total, cantidad) => total + cantidad, 0);
+        }
+
+        if (row.visible_galeria) {
+            pasadas.push({
+                titulo: row.titulo,
+                anio: row.anio ?? (funciones[0] ? dayjs(funciones[0].fecha).year() : ''),
+                asistencia: asistenciaPasada ?? 0,
+                resena: row.resena ?? row.sinopsis ?? '',
+                img: row.img ?? './assets/keke1.png',
+                imgSm: row.img ?? './assets/keke1.png'
+            });
+        }
+
+        if (row.activa && vigentes.length) {
+            obras.push({
+                id: row.id,
+                titulo: row.titulo,
+                autor: row.director || row.autor || '',
+                director: row.director || '',
+                duracionMinutos: row.duracion_minutos,
+                funciones: vigentes,
+                sinopsis: row.sinopsis || 'Una experiencia teatral para disfrutar en comunidad.',
+                video: row.video_url,
+                img: row.img || './assets/keke1.png'
+            });
+        }
+
+        if (row.activa && vencidas.length) {
+            pasadas.push({
+                titulo: row.titulo,
+                anio: dayjs(vencidas[vencidas.length - 1].fecha).year(),
+                asistencia: asistenciaPasada ?? 0,
+                resena: row.resena ?? row.sinopsis ?? '',
+                img: row.img ?? './assets/keke1.png',
+                imgSm: row.img ?? './assets/keke1.png'
+            });
+        }
+    }
+
+    const pasadasUnicas = [...new Map(pasadas.map(item => [item.titulo, item])).values()];
+    return { ...datosTeatro, obras, pasadas: pasadasUnicas };
+}
+
 document.addEventListener('click', e => {
     const v = e.target.closest('[data-video]');
     if (!v) return;
@@ -388,15 +501,28 @@ function getYouTubeVideoId(url) {
     return id && /^[\w-]{11}$/.test(id) ? id : null;
 }
 
-datos = datosTeatro;
-window.TEATRO = datos;
-inicializarSeleccionObras();
-pintarObraDestacada(obraSeleccionada);
-pintarObras();
-pintarGaleria();
-pintarTalleres();
-cuentaRegresiva();
-mapaCampus();
-animar();
-actualizarFondoPorSeccion();
-document.dispatchEvent(new Event('datos-listos'));
+async function inicializarTeatro() {
+    datos = catalogoLocal();
+    if (supabase) {
+        try {
+            datos = await catalogoDesdeBaseDeDatos(await cargarCatalogoTeatro());
+        } catch (error) {
+            mostrarErrorCatalogo(error);
+        }
+    }
+
+    window.TEATRO = datos;
+    inicializarSeleccionObras();
+    pintarObraDestacada(obraSeleccionada);
+    pintarObras();
+    pintarGaleria();
+    pintarTalleres();
+    cuentaRegresiva();
+    mapaCampus();
+    animar();
+    actualizarFondoPorSeccion();
+    document.dispatchEvent(new Event('datos-listos'));
+}
+
+document.addEventListener('catalogo-actualizado', () => window.location.reload());
+inicializarTeatro();

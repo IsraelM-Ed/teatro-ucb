@@ -9,19 +9,30 @@ La reserva combina tres componentes: Vue permite elegir una función y horario,
 React dibuja el mapa de butacas y Angular presenta el resumen y confirma la
 reserva. Las butacas confirmadas se guardan en Supabase y aparecen en **Mis
 entradas** para el usuario autenticado. Configura `VITE_SUPABASE_URL` y
-`VITE_SUPABASE_ANON_KEY` en el entorno de Vite; el esquema de base de datos está
-en `teatro-ucb-supabase/supabase/schema.sql`. Para una base que ya ejecutó ese
-esquema, revisa y ejecuta la migración
-`teatro-ucb-supabase/supabase/migrations/20261118163500_expand_theater_schema.sql`
-desde **Supabase → SQL Editor**. La migración no se ejecuta automáticamente.
-Precarga las obras, funciones, sala, butacas y talleres actuales. El sitio aún
-lee el catálogo desde `data/obras.json`; `ordenes`, inscripciones y postulaciones
-requieren una integración posterior antes de usarse desde la interfaz.
+`VITE_SUPABASE_ANON_KEY` en el entorno de Vite.
 
-Las obras, funciones, talleres y estadísticas de asistencia se leen de
-`data/obras.json`. Las inscripciones a talleres, por ahora, se conservan solo
-en el almacenamiento local del navegador. La reserva confirma butacas, pero
-este proyecto todavía no procesa pagos.
+Para configurar una base nueva, ejecuta `teatro-ucb-supabase/supabase/schema.sql`
+y luego las migraciones, en orden, desde **Supabase → SQL Editor**:
+
+1. `teatro-ucb-supabase/supabase/migrations/20261118163500_expand_theater_schema.sql`
+2. `teatro-ucb-supabase/supabase/migrations/20261125170000_admin_theater.sql`
+
+La migración administrativa crea roles protegidos con RLS, asigna privilegios
+a `israelmujia5@gmail.com` al registrarse (o si ya tiene cuenta), y permite a los
+administradores existentes agregar otros correos que ya tengan una cuenta.
+Después de aplicar la migración, inicia sesión con esa cuenta para acceder a
+**Administración**. Las nuevas obras, presentaciones y altas administrativas se
+guardan en Supabase; las inscripciones a talleres también se guardan allí. Si
+Supabase no está configurado, el catálogo y las inscripciones conservan el
+modo local original, pero las reservas y las herramientas administrativas no
+están disponibles.
+
+El catálogo público oculta las presentaciones vencidas y las muestra en **Obras
+pasadas**. Retirar una obra solo la oculta de la cartelera: sus funciones y
+reservas permanecen almacenadas para los informes administrativos. Las reservas
+de eventos pasados dejan de aparecer en las entradas del usuario, pero se
+conservan como datos estadísticos. La reserva confirma butacas, pero este
+proyecto todavía no procesa pagos.
 
 ## Publicación en GitHub Pages
 

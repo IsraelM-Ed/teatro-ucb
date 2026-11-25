@@ -38,9 +38,15 @@ async function cargarReservas() {
 
         const funciones = (window.TEATRO?.obras ?? [])
             .flatMap(obra => obra.funciones.map(funcion => ({ obra, funcion })));
+        const funcionesVigentes = new Set(funciones.map(item => item.funcion.id));
+        const entradasFuturas = reservas.filter(reserva => funcionesVigentes.has(reserva.funcion_id));
+        if (entradasFuturas.length === 0) {
+            mostrarEstado('No tienes entradas para funciones futuras.');
+            return;
+        }
         const fragmento = document.createDocumentFragment();
 
-        for (const reserva of reservas) {
+        for (const reserva of entradasFuturas) {
             const datosFuncion = funciones.find(item => item.funcion.id === reserva.funcion_id);
             const tarjeta = document.createElement('article');
             tarjeta.className = 'entrada-card';
