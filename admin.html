@@ -73,6 +73,10 @@
       <input id="adminDirector" name="director" required maxlength="160">
       <label for="adminDescripcion">Descripción <span>(opcional)</span></label>
       <textarea id="adminDescripcion" name="sinopsis" rows="3" maxlength="1200" placeholder="Si la dejas vacía, usaremos una descripción genérica."></textarea>
+      <label for="adminImagen">Imagen de portada y fondo <span>(obligatoria; JPG, PNG o WebP; máximo 5 MB)</span></label>
+      <input id="adminImagen" name="imagen" type="file" accept="image/jpeg,image/png,image/webp" required>
+      <p class="admin-ayuda">Usaremos la misma imagen para la portada de la obra y el fondo de la cartelera.</p>
+      <img id="adminImagenPreview" class="admin-imagen-preview" alt="Vista previa de la portada y fondo" hidden>
       <label for="adminVideo">Enlace de YouTube del tráiler <span>(opcional)</span></label>
       <input id="adminVideo" name="video_url" type="url" placeholder="https://www.youtube.com/watch?v=..." pattern="https?://(www\.)?(youtube\.com|youtu\.be)/.+" title="Usa un enlace de YouTube válido.">
       <div class="admin-horario">

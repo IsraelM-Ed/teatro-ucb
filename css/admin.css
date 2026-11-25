@@ -218,6 +218,14 @@
     resize: vertical;
 }
 
+.admin-imagen-preview {
+    width: min(100%, 28rem);
+    max-height: 18rem;
+    object-fit: cover;
+    border: 1px solid #514545;
+    border-radius: var(--radio);
+}
+
 .admin-form .btn {
     justify-self: start;
     margin-top: 0.4rem;

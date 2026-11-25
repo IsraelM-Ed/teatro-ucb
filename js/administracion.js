@@ -10,8 +10,11 @@ const obrasContainer = document.getElementById('adminObras');
 const administradoresContainer = document.getElementById('listaAdministradores');
 const buscarObrasInput = document.getElementById('buscarObras');
 const obrasSinResultados = document.getElementById('adminObrasSinResultados');
+const imagenInput = document.getElementById('adminImagen');
+const imagenPreview = document.getElementById('adminImagenPreview');
 const horarios = ['15:00', '16:30', '18:00', '19:30', '20:00'];
 let verificacion = 0;
+let imagenPreviewUrl = null;
 document.getElementById('adminFecha').min = ahoraLocal();
 
 function mostrarEstado(texto, error = false) {
@@ -297,6 +300,34 @@ function formValues(form) {
     return Object.fromEntries(new FormData(form));
 }
 
+function extensionImagen(file) {
+    const extensions = {
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'webp'
+    };
+    const extension = file instanceof File ? extensions[file.type] : null;
+    if (!extension) throw new Error('Adjunta una imagen JPG, PNG o WebP.');
+    if (file.size > 5 * 1024 * 1024) throw new Error('La imagen no puede superar los 5 MB.');
+    return extension;
+}
+
+function limpiarVistaPreviaImagen() {
+    if (imagenPreviewUrl) URL.revokeObjectURL(imagenPreviewUrl);
+    imagenPreviewUrl = null;
+    imagenPreview.removeAttribute('src');
+    imagenPreview.hidden = true;
+}
+
+imagenInput.addEventListener('change', () => {
+    limpiarVistaPreviaImagen();
+    const file = imagenInput.files?.[0];
+    if (!file) return;
+    imagenPreviewUrl = URL.createObjectURL(file);
+    imagenPreview.src = imagenPreviewUrl;
+    imagenPreview.hidden = false;
+});
+
 function manejarError(error, contexto) {
     console.error(contexto, error);
     mostrarEstado(error instanceof Error ? error.message : 'Ocurrió un error inesperado.', true);
@@ -308,26 +339,57 @@ document.getElementById('formNuevaObra').addEventListener('submit', async event 
     const button = form.querySelector('button[type="submit"]');
     if (!form.reportValidity()) return;
     button.disabled = true;
+    let uploadedImagePath = null;
     try {
         const values = formValues(form);
+        const extension = extensionImagen(values.imagen);
         if (!esYouTube(values.video_url)) throw new Error('El tráiler debe ser un enlace válido de YouTube.');
         const inicio = fechaHora(values.fecha, values.hora);
         if (new Date(inicio.replace(' ', 'T')) <= new Date()) {
             throw new Error('La primera función debe programarse en una fecha y hora futuras.');
         }
+        const imagePath = `${crypto.randomUUID()}.${extension}`;
+        const { error: uploadError } = await supabase.storage
+            .from('obras-portadas')
+            .upload(imagePath, values.imagen, {
+                cacheControl: '3600',
+                contentType: values.imagen.type,
+                upsert: false
+            });
+        if (uploadError) throw uploadError;
+        uploadedImagePath = imagePath;
         const { error } = await supabase.rpc('crear_obra_con_funcion', {
             p_titulo: values.titulo.trim(),
             p_director: values.director.trim(),
             p_sinopsis: values.sinopsis.trim(),
             p_video_url: values.video_url.trim(),
+            p_img_path: uploadedImagePath,
             p_inicio: inicio
         });
         if (error) throw error;
+        uploadedImagePath = null;
         form.reset();
+        limpiarVistaPreviaImagen();
         await cargarAdministracion();
         document.getElementById('dlgNuevaObra').close();
         mostrarEstado('Obra y primera función creadas correctamente.');
     } catch (error) {
+        if (uploadedImagePath) {
+            let cleanupError = null;
+            try {
+                const { error: storageError } = await supabase.storage
+                    .from('obras-portadas')
+                    .remove([uploadedImagePath]);
+                cleanupError = storageError;
+            } catch (storageError) {
+                cleanupError = storageError;
+            }
+            if (cleanupError) {
+                console.error('No se pudo limpiar la imagen después de un error al crear la obra.', cleanupError);
+                const message = error instanceof Error ? error.message : 'Ocurrió un error inesperado.';
+                error = new Error(`${message} La imagen quedó en almacenamiento y requiere limpieza manual.`);
+            }
+        }
         manejarError(error, 'No se pudo crear la obra y su función.');
     } finally {
         button.disabled = false;

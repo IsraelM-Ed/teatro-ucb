@@ -47,6 +47,7 @@ las migraciones, en orden, desde **Supabase → SQL Editor**:
 1. `teatro-ucb-supabase/supabase/migrations/20261118163500_expand_theater_schema.sql`
 2. `teatro-ucb-supabase/supabase/migrations/20261125170000_admin_theater.sql`
 3. `teatro-ucb-supabase/supabase/migrations/20261125190000_reservations_admin_security.sql`
+4. `teatro-ucb-supabase/supabase/migrations/20261125192100_work_images_required.sql`
 
 La migración administrativa protege las operaciones con RLS y asigna el rol
 inicial a `israelmujia5@gmail.com` si la cuenta ya existe o cuando se registra.
@@ -54,6 +55,9 @@ La migración de seguridad de reservas reemplaza el acceso público a las filas
 privadas por la RPC de disponibilidad, conserva las cancelaciones como historial,
 habilita sincronización Realtime y agrega tokens QR. También permite al
 administrador principal retirar roles delegados.
+La migración de imágenes crea el bucket público `obras-portadas`, limitado a
+archivos JPG, PNG o WebP de hasta 5 MB; solo administradores pueden subirlos.
+Cada obra nueva requiere una imagen, que se usa como portada y fondo.
 Las migraciones SQL deben aplicarse en el proyecto Supabase de despliegue; no se
 ejecutan automáticamente desde este repositorio.
 

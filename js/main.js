@@ -18,7 +18,16 @@ dayjs.locale('es');
 
 const fmtFechaFuncion = f => dayjs(f).format('D MMM YYYY · HH:mm');
 const fmtHora = f => dayjs(f).format('HH:mm');
-const assetUrl = path => `${import.meta.env.BASE_URL}${path.replace(/^\.?\//, '')}`;
+const assetUrl = path => {
+    const imagePath = String(path ?? '');
+    if (/^https?:\/\//i.test(imagePath)) return imagePath;
+    if (imagePath.startsWith('obras-portadas/')) {
+        if (!supabase) throw new Error('Se requiere Supabase para cargar la imagen de esta obra.');
+        return supabase.storage.from('obras-portadas')
+            .getPublicUrl(imagePath.slice('obras-portadas/'.length)).data.publicUrl;
+    }
+    return `${import.meta.env.BASE_URL}${imagePath.replace(/^\.?\//, '')}`;
+};
 let datos = null;
 let obraSeleccionada = null;
 
@@ -65,7 +74,7 @@ function pintarObras() {
         <button class="tarjeta cartelera-afiche" type="button" data-obra="${o.id}"
                 aria-pressed="${o.id === obraSeleccionada?.id}"
                 aria-label="Seleccionar obra ${escaparHtml(o.titulo)}">
-            <img src="${assetUrl(o.img)}" alt="Imagen de ${escaparHtml(o.titulo)}" loading="lazy">
+            <img src="${escaparHtml(assetUrl(o.img))}" alt="Imagen de ${escaparHtml(o.titulo)}" loading="lazy">
             <div class="tarjeta-cuerpo">
                 <h3>${escaparHtml(o.titulo)}</h3>
                 <p class="duracion-obra">${o.duracionMinutos} min</p>
@@ -141,8 +150,8 @@ function pintarGaleria() {
     document.getElementById('listaGaleria').innerHTML = datos.pasadas.map(p => `
         <article class="tarjeta obra-pasada" data-aos="fade-up">
             <picture>
-                <source media="(min-width:900px)" srcset="${assetUrl(p.img)}">
-                <img src="${assetUrl(p.imgSm)}" alt="Función de ${p.titulo}" loading="lazy">
+                <source media="(min-width:900px)" srcset="${escaparHtml(assetUrl(p.img))}">
+                <img src="${escaparHtml(assetUrl(p.imgSm))}" alt="Función de ${escaparHtml(p.titulo)}" loading="lazy">
             </picture>
             <div class="tarjeta-cuerpo">
                     <h3>${escaparHtml(p.titulo)}</h3>
