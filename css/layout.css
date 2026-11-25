@@ -117,18 +117,9 @@ body::after {
     gap: 0.6rem;
 }
 
-.redes-nav a {
-    color: var(--color-texto);
-    font-size: clamp(0.72rem, 0.85vw, 0.9rem);
-    text-decoration: none;
-    text-underline-offset: 0.2em;
-}
 
-.redes-nav a:hover,
-.redes-nav a:focus-visible {
-    color: var(--color-oro);
-    text-decoration: underline;
-}
+
+
 
 .sesion-nav {
     display: flex;
@@ -884,9 +875,6 @@ body::after {
         gap: 0.35rem;
     }
 
-    .redes-nav a {
-        font-size: 0.7rem;
-    }
 
     .marca {
         flex-basis: min(221px, 42vw);

@@ -94,8 +94,6 @@ class TeatroNavigation extends HTMLElement {
                     </ul>
                 </nav>
                 <div class="redes-nav">
-                    <a href="https://www.facebook.com/UCB.BOLIVIA/" target="_blank" rel="noopener noreferrer" aria-label="Facebook oficial de la UCB, sede La Paz">Facebook</a>
-                    <a href="https://www.youtube.com/channel/UCCsTcWeaifOi2tqN-m9ksxA" target="_blank" rel="noopener noreferrer" aria-label="Canal oficial de YouTube de la UCB">YouTube</a>
                 </div>
                 <div class="sesion-nav" id="sesionNav" aria-live="polite">
                     <a href="${base}login.html">Sign in</a>
