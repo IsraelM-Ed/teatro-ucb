@@ -111,58 +111,87 @@ async function cargarAdministracion() {
 function pintarAdminObras(obras, funciones) {
     const fragment = document.createDocumentFragment();
     for (const obra of obras) {
-        const card = crearElemento('article', 'admin-obra');
-        const title = crearElemento('h4', '', obra.titulo);
-        card.append(title);
-        if (!obra.activa) card.append(crearElemento('p', 'funcion-cancelada', 'Obra eliminada de la cartelera'));
+        const card = crearElemento('details', 'admin-obra');
+        const summary = crearElemento('summary', 'admin-obra-resumen');
+        summary.append(
+            crearElemento('span', 'admin-obra-titulo', obra.titulo),
+            crearElemento('span', obra.activa ? 'admin-badge' : 'admin-badge admin-badge-inactivo', obra.activa ? 'En cartelera' : 'Retirada'),
+            crearElemento('span', 'admin-obra-total', `${funciones.filter(funcion => funcion.obra_id === obra.id).length} funciones`)
+        );
+        card.append(summary);
 
-        const editForm = document.createElement('form');
-        editForm.className = 'admin-form admin-form-obra';
-        editForm.dataset.editarObra = String(obra.id);
-        editForm.innerHTML = `
-            <label>Nombre de la obra<input name="titulo" required maxlength="160" value="${escapar(obra.titulo)}"></label>
-            <label>Director<input name="director" required maxlength="160" value="${escapar(obra.director ?? '')}"></label>
-            <label>Descripción<textarea name="sinopsis" rows="2" maxlength="1200">${escapar(obra.sinopsis ?? '')}</textarea></label>
-            <label>Enlace del tráiler de YouTube<input name="video_url" type="url" pattern="https?://(www\\.)?(youtube\\.com|youtu\\.be)/.+" value="${escapar(obra.video_url ?? '')}"></label>
-            <div class="admin-acciones"><button class="btn" type="submit">Guardar obra</button><button class="btn btn-eliminar" type="button" data-eliminar-obra="${obra.id}">Eliminar obra</button></div>`;
-        card.append(editForm);
+        const content = crearElemento('div', 'admin-obra-contenido');
+        const editDetails = crearElemento('details', 'admin-editar-obra');
+        editDetails.innerHTML = `
+            <summary>Editar datos de la obra</summary>
+            <form class="admin-form admin-form-obra" data-editar-obra="${obra.id}">
+                <label>Nombre de la obra<input name="titulo" required maxlength="160" value="${escapar(obra.titulo)}"></label>
+                <label>Director<input name="director" required maxlength="160" value="${escapar(obra.director ?? '')}"></label>
+                <label>Descripción<textarea name="sinopsis" rows="2" maxlength="1200">${escapar(obra.sinopsis ?? '')}</textarea></label>
+                <label>Enlace del tráiler de YouTube<input name="video_url" type="url" pattern="https?://(www\\.)?(youtube\\.com|youtu\\.be)/.+" value="${escapar(obra.video_url ?? '')}"></label>
+                <div class="admin-acciones"><button class="btn" type="submit">Guardar datos</button></div>
+            </form>`;
+
+        const removeWorkButton = crearElemento('button', 'btn btn-eliminar', 'Retirar obra');
+        removeWorkButton.type = 'button';
+        removeWorkButton.dataset.eliminarObra = String(obra.id);
+        const actions = crearElemento('div', 'admin-obra-acciones');
+        actions.append(editDetails, removeWorkButton);
+        content.append(actions);
 
         const presentations = funciones.filter(funcion => funcion.obra_id === obra.id);
         if (presentations.length) {
             const list = crearElemento('div', 'admin-funciones');
-            list.append(crearElemento('h5', '', 'Presentaciones'));
+            list.append(crearElemento('h5', '', 'Funciones'));
             for (const funcion of presentations) {
-                const row = crearElemento('form', 'admin-funcion');
-                row.dataset.editarFuncion = funcion.id;
+                const row = crearElemento('details', 'admin-funcion');
                 const end = funcion.salida ?? sumarMinutos(fechaHora(fechaLocal(funcion.inicio), fechaLocal(funcion.inicio).slice(11, 16)), obra.duracion_minutos);
                 const vencida = new Date(String(end).replace(' ', 'T')) <= new Date();
-                if (vencida) row.append(crearElemento('p', 'funcion-pasada', 'Función pasada'));
-                else if (funcion.estado === 'cancelada') row.append(crearElemento('p', 'funcion-cancelada', 'Función cancelada'));
-                row.append(
-                    crearElemento('span', 'funcion-id', funcion.id),
-                    campoFechaHora('Ingreso', 'inicio', fechaLocal(funcion.inicio)),
-                    campoFechaHora('Salida', 'salida', fechaLocal(end)),
-                    crearElemento('button', 'btn', 'Guardar horario')
+                const status = funcion.estado === 'cancelada'
+                    ? crearElemento('span', 'admin-badge admin-badge-inactivo', 'Cancelada')
+                    : vencida
+                        ? crearElemento('span', 'admin-badge admin-badge-pasada', 'Función pasada')
+                        : crearElemento('span', 'admin-badge', 'Programada');
+                const rowSummary = crearElemento('summary', 'admin-funcion-resumen');
+                rowSummary.append(
+                    crearElemento('span', 'admin-funcion-fecha', new Intl.DateTimeFormat('es-BO', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short'
+                    }).format(new Date(String(funcion.inicio).replace(' ', 'T')))),
+                    status,
+                    crearElemento('span', 'admin-funcion-editar', 'Editar horario')
                 );
-                row.querySelector('button').type = 'submit';
+                const editFunctionForm = crearElemento('form', 'admin-form admin-funcion-form');
+                editFunctionForm.dataset.editarFuncion = funcion.id;
+                editFunctionForm.append(
+                    campoFechaHora('Ingreso', 'inicio', fechaLocal(funcion.inicio)),
+                    campoFechaHora('Salida', 'salida', fechaLocal(end))
+                );
+                const saveFunctionButton = crearElemento('button', 'btn', 'Guardar horario');
+                saveFunctionButton.type = 'submit';
+                editFunctionForm.append(saveFunctionButton);
+                row.append(rowSummary, editFunctionForm);
                 list.append(row);
             }
-            card.append(list);
+            content.append(list);
         } else {
-            card.append(crearElemento('p', 'admin-ayuda', 'Esta obra todavía no tiene presentaciones.'));
+            content.append(crearElemento('p', 'admin-ayuda', 'Esta obra todavía no tiene funciones.'));
         }
 
+        const addFunctionDetails = crearElemento('details', 'admin-agregar-funcion');
+        addFunctionDetails.innerHTML = '<summary>+ Agregar una función</summary>';
         const addFunction = document.createElement('form');
         addFunction.className = 'admin-form admin-nueva-funcion';
         addFunction.dataset.nuevaFuncion = String(obra.id);
         addFunction.innerHTML = `
-            <h5>Agregar presentación</h5>
             <div class="admin-horario">
                 <label>Fecha<input name="fecha" type="date" min="${ahoraLocal()}" required></label>
                 <label>Horario preestablecido<select name="hora" required>${horaOptions()}</select></label>
             </div>
-            <button class="btn" type="submit">Agregar función</button>`;
-        card.append(addFunction);
+            <button class="btn" type="submit">Guardar nueva función</button>`;
+        addFunctionDetails.append(addFunction);
+        content.append(addFunctionDetails);
+        card.append(content);
         fragment.append(card);
     }
     obrasContainer.replaceChildren(fragment);

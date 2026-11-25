@@ -248,18 +248,139 @@
 }
 
 .admin-obra {
-    display: grid;
-    gap: 0.75rem;
+    display: block;
     min-width: 0;
-    padding: clamp(1rem, 2.5vw, 1.5rem);
+    padding: 0;
+    overflow: hidden;
     background: rgba(25, 16, 16, 0.92);
     border: 1px solid rgba(212, 175, 55, 0.35);
     border-radius: 15px;
 }
 
-.admin-obra h4 {
-    margin: 0;
-    font-size: 1.45rem;
+.admin-obra > summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.2rem;
+    cursor: pointer;
+    list-style: none;
+}
+
+.admin-obra > summary::-webkit-details-marker,
+.admin-funcion > summary::-webkit-details-marker,
+.admin-editar-obra > summary::-webkit-details-marker,
+.admin-agregar-funcion > summary::-webkit-details-marker {
+    display: none;
+}
+
+.admin-obra > summary::before,
+.admin-funcion > summary::before,
+.admin-editar-obra > summary::before,
+.admin-agregar-funcion > summary::before {
+    content: "›";
+    display: inline-block;
+    color: var(--color-oro);
+    font-size: 1.4rem;
+    font-weight: 700;
+    transition: transform 160ms ease;
+}
+
+.admin-obra > summary {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
+.admin-obra[open] > summary::before,
+.admin-funcion[open] > summary::before,
+.admin-editar-obra[open] > summary::before,
+.admin-agregar-funcion[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.admin-obra-titulo {
+    min-width: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.admin-obra-total {
+    color: var(--color-suave);
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.admin-badge {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    color: #14100a;
+    background: var(--color-oro);
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.admin-badge-inactivo {
+    color: var(--color-texto);
+    background: #5b5050;
+}
+
+.admin-badge-pasada {
+    color: white;
+    background: #b3261e;
+}
+
+.admin-obra-contenido {
+    display: grid;
+    gap: 0.8rem;
+    padding: 0 1.2rem 1.2rem;
+}
+
+.admin-obra-acciones {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.admin-editar-obra,
+.admin-agregar-funcion {
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+}
+
+.admin-editar-obra > summary,
+.admin-agregar-funcion > summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 0.8rem;
+    color: var(--color-oro);
+    cursor: pointer;
+    font-weight: 700;
+    list-style: none;
+}
+
+.admin-editar-obra > summary::before,
+.admin-agregar-funcion > summary::before {
+    content: "›";
+    display: inline-block;
+    color: var(--color-oro);
+    font-size: 1.25rem;
+    transition: transform 160ms ease;
+}
+
+.admin-editar-obra[open] > summary::before,
+.admin-agregar-funcion[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.admin-editar-obra .admin-form {
+    padding: 0 0.8rem 0.8rem;
 }
 
 .admin-obra h5 {
@@ -297,16 +418,45 @@
 }
 
 .admin-funciones {
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    display: grid;
+    gap: 0.4rem;
+}
+
+.admin-funciones h5 {
+    margin: 0 0 0.2rem;
 }
 
 .admin-funcion {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.admin-funcion > summary {
     display: grid;
-    grid-template-columns: minmax(100px, 0.7fr) repeat(2, minmax(150px, 1fr)) auto;
-    align-items: end;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
     gap: 0.6rem;
-    padding: 0.75rem 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.65rem 0.8rem;
+    cursor: pointer;
+    list-style: none;
+}
+
+.admin-funcion-fecha {
+    min-width: 0;
+    font-weight: 600;
+}
+
+.admin-funcion-editar {
+    color: var(--color-suave);
+    font-size: 0.85rem;
+}
+
+.admin-funcion-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+    align-items: end;
+    gap: 0.7rem;
+    padding: 0 0.8rem 0.8rem;
 }
 
 .admin-campo-hora {
@@ -332,9 +482,7 @@
 }
 
 .admin-nueva-funcion {
-    margin-top: 0.6rem;
-    padding-top: 0.8rem;
-    border-top: 1px dashed rgba(255, 255, 255, 0.2);
+    padding: 0 0.8rem 0.8rem;
 }
 
 .admin-bloque {
@@ -359,6 +507,15 @@
     align-items: end;
 }
 
+.admin-admin-campo {
+    display: grid;
+    gap: 0.4rem;
+}
+
+.admin-admin-campo label {
+    margin: 0;
+}
+
 .admin-admin-form .btn {
     margin: 0;
 }
@@ -366,6 +523,10 @@
 .admin-lista-admins {
     margin: 0.8rem 0 0;
     padding-left: 1.2rem;
+}
+
+.admin-lista-titulo {
+    margin: 1.5rem 0 0.75rem;
 }
 
 .admin-acceso {
@@ -396,7 +557,7 @@
         min-height: 180px;
     }
 
-    .admin-funcion,
+    .admin-funcion-form,
     .admin-form-obra,
     .admin-admin-form,
     .admin-horario {
@@ -409,6 +570,22 @@
     .funcion-pasada,
     .funcion-cancelada {
         grid-column: auto;
+    }
+
+    .admin-obra > summary {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+
+    .admin-obra-total {
+        grid-column: 2 / -1;
+    }
+
+    .admin-funcion > summary {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+
+    .admin-funcion-editar {
+        grid-column: 2 / -1;
     }
 
     .admin-admin-form .btn {

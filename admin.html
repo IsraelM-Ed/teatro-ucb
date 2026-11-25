@@ -104,17 +104,20 @@
     <p class="admin-eyebrow">Catálogo</p>
     <h2 id="tituloGestionObras">Gestionar obras</h2>
     <p class="admin-dialog-intro">Modifica los datos y horarios de las funciones. Las funciones pasadas se conservan para estadísticas.</p>
-    <div id="adminObras" class="admin-lista"></div>
     <section class="admin-bloque admin-gestion-admins">
-      <h3>Permisos de administrador</h3>
-      <p>Solo puedes agregar cuentas registradas y verificadas.</p>
+      <h3>Agregar administrador</h3>
+      <p>Ingresa el correo de una cuenta registrada y verificada para darle acceso al panel.</p>
       <form id="formNuevoAdmin" class="admin-form admin-admin-form">
-        <label for="adminEmail">Correo de la cuenta</label>
-        <input id="adminEmail" name="email" type="email" required>
-        <button class="btn" type="submit">Agregar administrador</button>
+        <div class="admin-admin-campo">
+          <label for="adminEmail">Correo de la cuenta</label>
+          <input id="adminEmail" name="email" type="email" required>
+        </div>
+        <button class="btn btn-primario" type="submit">Añadir cuenta</button>
       </form>
       <ul id="listaAdministradores" class="admin-lista-admins"></ul>
     </section>
+    <h3 class="admin-lista-titulo">Obras registradas</h3>
+    <div id="adminObras" class="admin-lista"></div>
   </dialog>
 
   <script type="module" src="./js/administracion.js"></script>

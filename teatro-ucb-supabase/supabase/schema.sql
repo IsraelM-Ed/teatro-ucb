@@ -1,5 +1,3 @@
--- Ejecuta este script en Supabase: SQL Editor > New query > Run
-
 -- 1) Perfiles de usuario (extiende auth.users, donde Supabase guarda email y contraseña cifrada)
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
