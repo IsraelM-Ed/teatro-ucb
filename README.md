@@ -2,7 +2,7 @@
 
 Sitio web del Taller de Teatro de la Universidad Católica Boliviana San Pablo,
 sede La Paz. Permite consultar la cartelera, reservar butacas, revisar obras
-pasadas e inscribirse a talleres.
+pasadas, conocer al elenco e inscribirse a talleres.
 
 ## Tecnologías
 
@@ -50,6 +50,7 @@ las migraciones, en orden, desde **Supabase → SQL Editor**:
 4. `teatro-ucb-supabase/supabase/migrations/20261125192100_work_images_required.sql`
 5. `teatro-ucb-supabase/supabase/migrations/20261125202000_admin_workshops.sql`
 6. `teatro-ucb-supabase/supabase/migrations/20261125214000_reservation_holds_and_simulated_qr.sql`
+7. `teatro-ucb-supabase/supabase/migrations/20261126120000_elenco.sql`
 
 La migración administrativa protege las operaciones con RLS y asigna el rol
 inicial a `israelmujia5@gmail.com` si la cuenta ya existe o cuando se registra.
@@ -66,6 +67,12 @@ imágenes de los cursos.
 La migración de reservas exige iniciar sesión para bloquear butacas por cinco
 minutos, guarda el pago simulado de forma transaccional y mantiene las reservas
 confirmadas para el historial. El QR de pago es demostrativo: no mueve dinero.
+La migración del elenco crea `miembros_elenco` (integrantes con su paralelo:
+oficial, juveniles o aspirantes) y `elenco_obras` (quién participa en cada obra
+y con qué personaje). La lectura es pública y solo los administradores pueden
+modificarlas. También crea el bucket público `elenco` para las fotos de perfil,
+limitado a JPG, PNG o WebP de hasta 2 MB. Al eliminar un integrante se quita de
+todas las obras en las que participaba.
 Las migraciones SQL deben aplicarse en el proyecto Supabase de despliegue; no se
 ejecutan automáticamente desde este repositorio.
 
@@ -104,8 +111,18 @@ conserva y el usuario puede reintentar el envío desde la pantalla.
   estar incluida en la publicación `supabase_realtime`; si la conexión Realtime
   falla, el mapa consulta la disponibilidad cada cinco segundos hasta reconectar.
 - Catálogo de obras pasadas e inscripciones a talleres.
+- Página de elenco en `elenco.html`, con pestañas por paralelo (oficial,
+  juveniles y aspirantes), foto o iniciales de cada integrante y las obras en
+  las que participa. La obra destacada de la cartelera muestra su elenco con
+  nombre, foto y personaje. Sin Supabase configurado se usan los datos de
+  ejemplo de `data/elenco.json`.
 - Panel administrativo independiente en `admin.html`, con altas y edición de
   obras, funciones y talleres, permisos, un resumen de actividad y reportes.
+  Desde «Gestionar elenco» se agregan integrantes con foto, se cambian de
+  paralelo o se eliminan; desde «Gestionar obras» se asigna el elenco de cada
+  obra con su personaje o rol.
+- Pie de página compartido (`<teatro-footer>`) con navegación, contacto y redes
+  sociales, presente en todas las páginas públicas.
 - Selección de butacas animada, notificaciones toast y placeholders skeleton
   durante las cargas.
 - GitHub Pages se configura con la acción del repositorio. `npm run build`
@@ -125,7 +142,7 @@ Configura `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` como secretos de GitHub
 Actions y ejecuta el workflow de Pages. La configuración de Vite toma el nombre
 del repositorio para construir las rutas del sitio.
 
-Facebook (UCB Sede La Paz) y YouTube enlazan a perfiles cuyo nombre e identidad
-se verificaron en las propias páginas. Instagram y TikTok se omiten hasta poder
-confirmar sus URLs oficiales. Los reportes y operaciones administrativas
+Los enlaces a redes sociales (YouTube, TikTok e Instagram) se configuran en
+`js/redes.js` y se muestran como íconos SVG en la cabecera y en el pie de
+página; una red sin URL no se muestra. Los reportes y operaciones administrativas
 dependen de que las migraciones SQL requeridas estén aplicadas en Supabase.
