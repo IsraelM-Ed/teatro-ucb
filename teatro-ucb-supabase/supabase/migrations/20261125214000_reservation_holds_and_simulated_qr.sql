@@ -302,8 +302,9 @@ begin
     inserted.pago_referencia,
     inserted.pago_confirmado_en;
 
-  delete from public.bloqueos_butacas
-  where funcion_id = p_funcion_id and user_id = v_user_id;
+  delete from public.bloqueos_butacas as hold
+  where hold.funcion_id = p_funcion_id
+    and hold.user_id = v_user_id;
 end;
 $$;
 
