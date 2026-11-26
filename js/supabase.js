@@ -23,6 +23,15 @@ function getSupabase() {
   return supabase;
 }
 
+export function traducirMensajeAutenticacion(message) {
+  if (/anonymous sign-ins are disabled/i.test(message)) {
+    return 'El acceso anónimo está deshabilitado. Inicia sesión con tu cuenta para continuar.';
+  }
+  if (/^sign in$/i.test(message)) return 'Iniciar sesión';
+  if (/please sign in|sign in to continue/i.test(message)) return 'Inicia sesión para continuar.';
+  return null;
+}
+
 // ---------- Autenticación ----------
 export async function registrar({ nombre, email, password }) {
   const { data, error } = await getSupabase().auth.signUp({

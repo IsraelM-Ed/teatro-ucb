@@ -1,4 +1,9 @@
-import { registrar, iniciarSesion, usuarioActual } from './supabase.js';
+import {
+  registrar,
+  iniciarSesion,
+  traducirMensajeAutenticacion,
+  usuarioActual
+} from './supabase.js';
 
 const form = document.querySelector('#auth-form');
 const msg = document.querySelector('#auth-msg');
@@ -41,6 +46,8 @@ form.addEventListener('submit', async (e) => {
 });
 
 function traducir(m, modo) {
+  const mensajeAutenticacion = traducirMensajeAutenticacion(m);
+  if (mensajeAutenticacion) return mensajeAutenticacion;
   if (/Las contraseñas no coinciden\./i.test(m)) return m;
   if (/Invalid login credentials/i.test(m)) return 'El correo o la contraseña son incorrectos.';
   if (/email not confirmed/i.test(m)) return 'Debes confirmar tu correo antes de iniciar sesión.';

@@ -6,6 +6,7 @@ import {
     enviarCorreoConfirmacion,
     misBloqueosButacas,
     supabase,
+    traducirMensajeAutenticacion,
     usuarioActual
 } from '../js/supabase.js';
 import { mostrarToast } from '../js/toasts.js';
@@ -579,11 +580,12 @@ function generarReferencia() {
 }
 
 function errorMessage(error) {
-    if (error instanceof Error) return error.message;
-    if (typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string') {
-        return error.message;
-    }
-    return 'Error desconocido.';
+    const message = error instanceof Error
+        ? error.message
+        : typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string'
+            ? error.message
+            : 'Error desconocido.';
+    return traducirMensajeAutenticacion(message) ?? message;
 }
 
 export function getSeatRows() {
