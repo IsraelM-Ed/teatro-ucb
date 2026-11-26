@@ -12,6 +12,8 @@ export const RESERVATION_CHANGED_EVENT = 'reserva-cambiada';
 export const RESERVATION_CONFIRMED_EVENT = RESERVATION_CHANGED_EVENT;
 const ROWS = ['A', 'B', 'C', 'D', 'E', 'F'];
 const COLUMNS = 10;
+const AVAILABILITY_POLL_INTERVAL_MS = 5000;
+const LIVE_AVAILABILITY_ERROR = 'La actualización instantánea no está disponible; el mapa se actualizará cada 5 segundos.';
 
 let currentFunction = null;
 let selectedSeats = new Set();
@@ -23,6 +25,7 @@ let loadError = false;
 let confirming = false;
 let functionRequest = 0;
 let availabilityChannel = null;
+let availabilityPollingTimer = null;
 let occupancyRevision = 0;
 let lastNotifiedMessage = '';
 
@@ -53,14 +56,23 @@ function publish() {
 }
 
 export async function selectFunction(selectedFunction) {
-    if (currentFunction?.id === selectedFunction?.id) return;
+    if (currentFunction?.id === selectedFunction?.id) {
+        if (selectedFunction && !availabilityChannel && supabase) {
+            subscribeToAvailability(selectedFunction.id, functionRequest);
+            void actualizarDisponibilidad(selectedFunction.id, functionRequest);
+        }
+        return;
+    }
 
+    const request = ++functionRequest;
+    if (availabilityPollingTimer !== null) {
+        window.clearInterval(availabilityPollingTimer);
+        availabilityPollingTimer = null;
+    }
     if (availabilityChannel) {
         supabase?.removeChannel(availabilityChannel);
         availabilityChannel = null;
     }
-
-    const request = ++functionRequest;
     occupancyRevision = 0;
     currentFunction = selectedFunction;
     selectedSeats = new Set();
@@ -94,7 +106,7 @@ export async function selectFunction(selectedFunction) {
 }
 
 function subscribeToAvailability(functionId, request) {
-    availabilityChannel = supabase
+    const channel = supabase
         .channel(`disponibilidad-${functionId}`)
         .on('postgres_changes', {
             event: '*',
@@ -114,18 +126,45 @@ function subscribeToAvailability(functionId, request) {
             }
             if (payload.eventType === 'DELETE') occupiedSeats.delete(payload.old.butaca);
             publish();
-        })
-        .subscribe(status => {
-            if (request !== functionRequest) return;
-            if (status === 'SUBSCRIBED') {
-                void actualizarDisponibilidad(functionId, request);
-            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-                console.error(`No se pudo suscribir a la disponibilidad en vivo de ${functionId}: ${status}`);
-                message = 'La actualización en vivo no está disponible; vuelve a seleccionar la función para actualizar el mapa.';
-                messageType = 'error';
-                publish();
-            }
         });
+    availabilityChannel = channel;
+    channel.subscribe((status, error) => {
+        if (request !== functionRequest || availabilityChannel !== channel) return;
+        if (status === 'SUBSCRIBED') {
+            if (availabilityPollingTimer !== null) {
+                window.clearInterval(availabilityPollingTimer);
+                availabilityPollingTimer = null;
+            }
+            if (message === LIVE_AVAILABILITY_ERROR) {
+                message = '';
+                messageType = '';
+            }
+            void actualizarDisponibilidad(functionId, request);
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            console.error(`No se pudo suscribir a la disponibilidad en vivo de ${functionId}.`, { status, error });
+            availabilityChannel = null;
+            void supabase.removeChannel(channel);
+            message = LIVE_AVAILABILITY_ERROR;
+            messageType = 'error';
+            publish();
+            startAvailabilityPolling(functionId, request);
+        }
+    });
+}
+
+function startAvailabilityPolling(functionId, request) {
+    if (availabilityPollingTimer !== null) return;
+
+    const timer = window.setInterval(() => {
+        if (availabilityPollingTimer !== timer) return;
+        if (request !== functionRequest) {
+            window.clearInterval(timer);
+            availabilityPollingTimer = null;
+            return;
+        }
+        void actualizarDisponibilidad(functionId, request);
+    }, AVAILABILITY_POLL_INTERVAL_MS);
+    availabilityPollingTimer = timer;
 }
 
 async function actualizarDisponibilidad(functionId, request) {
@@ -237,6 +276,10 @@ export function getSeatRows() {
 }
 
 window.addEventListener('pagehide', () => {
+    if (availabilityPollingTimer !== null) {
+        window.clearInterval(availabilityPollingTimer);
+        availabilityPollingTimer = null;
+    }
     if (availabilityChannel && supabase) {
         supabase.removeChannel(availabilityChannel);
         availabilityChannel = null;

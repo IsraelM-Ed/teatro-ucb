@@ -143,7 +143,13 @@ class TeatroNavigation extends HTMLElement {
             }
             this.scrollState.lastY = currentY;
         };
+        this.handleFocusIn = event => {
+            if (event.target instanceof HTMLElement && event.target.matches(':focus-visible')) {
+                this.classList.remove('oculta-por-scroll');
+            }
+        };
         window.addEventListener('scroll', this.handleScroll, { passive: true });
+        this.addEventListener('focusin', this.handleFocusIn);
         button.addEventListener('click', () => {
             const abierto = menu.classList.toggle('abierto');
             button.setAttribute('aria-expanded', String(abierto));
@@ -167,6 +173,7 @@ class TeatroNavigation extends HTMLElement {
     disconnectedCallback() {
         this.subscription?.unsubscribe();
         if (this.handleScroll) window.removeEventListener('scroll', this.handleScroll);
+        if (this.handleFocusIn) this.removeEventListener('focusin', this.handleFocusIn);
     }
 
     actualizarSesion(user, base) {

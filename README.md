@@ -74,7 +74,8 @@ ejecutan automáticamente desde este repositorio.
 - Vista esquemática de butaca y disponibilidad en tiempo real (la tabla
   `disponibilidad_butacas` representa cada butaca ocupada por función; la
   matriz A-F se actualiza al recibir cambios de Supabase Realtime. La tabla debe
-  estar incluida en la publicación `supabase_realtime`.
+  estar incluida en la publicación `supabase_realtime`; si la conexión Realtime
+  falla, el mapa consulta la disponibilidad cada cinco segundos hasta reconectar.
 - Catálogo de obras pasadas e inscripciones a talleres.
 - Panel administrativo independiente en `admin.html`, con altas y edición de
   obras, funciones y talleres, permisos, un resumen de actividad y reportes.

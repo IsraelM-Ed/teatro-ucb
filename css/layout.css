@@ -81,10 +81,6 @@ teatro-navigation.oculta-por-scroll .cabecera {
     pointer-events: none;
 }
 
-teatro-navigation:focus-within .cabecera {
-    transform: translateY(0);
-}
-
 .marca {
     display: block;
     flex: 0 0 221px;
