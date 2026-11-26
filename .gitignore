@@ -8,3 +8,6 @@ Thumbs.db
 
 # Archivos de entorno
 .env
+
+# Metadatos locales de Supabase CLI
+teatro-ucb-supabase/supabase/.temp/

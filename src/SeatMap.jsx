@@ -52,7 +52,7 @@ function SeatMap() {
                                         aria-pressed={selected.has(code)}
                                         data-curva={seatIndex}
                                         data-pasillo={seatIndex === 4 ? 'despues' : undefined}
-                                        disabled={!state.currentFunction || state.loading || state.loadError || state.confirming || isOccupied}
+                                        disabled={!state.currentFunction || state.loading || state.loadError || state.confirming || state.holdUpdating || state.paymentStatus !== 'idle' || isOccupied}
                                         onMouseEnter={() => setPreviewSeat({ code, row: rowIndex, column: seatIndex })}
                                         onMouseLeave={() => setPreviewSeat(null)}
                                         onFocus={() => setPreviewSeat({ code, row: rowIndex, column: seatIndex })}
