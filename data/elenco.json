@@ -1,0 +1,95 @@
+{
+    "miembros": [
+        {
+            "id": 1,
+            "nombre": "Camila Rojas",
+            "categoria": "oficial",
+            "foto": null,
+            "obras": [
+                { "obraId": 3, "personaje": "Blanche DuBois" },
+                { "obraId": 1, "personaje": "Bernarda" }
+            ]
+        },
+        {
+            "id": 2,
+            "nombre": "Diego Mamani",
+            "categoria": "oficial",
+            "foto": null,
+            "obras": [
+                { "obraId": 3, "personaje": "Stanley Kowalski" },
+                { "obraId": 2, "personaje": "Vladimir" }
+            ]
+        },
+        {
+            "id": 3,
+            "nombre": "Valentina Quispe",
+            "categoria": "oficial",
+            "foto": null,
+            "obras": [
+                { "obraId": 3, "personaje": "Stella Kowalski" },
+                { "obraId": 1, "personaje": "Adela" }
+            ]
+        },
+        {
+            "id": 4,
+            "nombre": "Mateo Fernández",
+            "categoria": "oficial",
+            "foto": null,
+            "obras": [
+                { "obraId": 4, "personaje": "Harpagón" },
+                { "obraId": 2, "personaje": "Estragón" }
+            ]
+        },
+        {
+            "id": 5,
+            "nombre": "Sofía Choque",
+            "categoria": "juveniles",
+            "foto": null,
+            "obras": [
+                { "obraId": 4, "personaje": "Elisa" }
+            ]
+        },
+        {
+            "id": 6,
+            "nombre": "Joaquín Torrez",
+            "categoria": "juveniles",
+            "foto": null,
+            "obras": [
+                { "obraId": 4, "personaje": "Cleante" },
+                { "obraId": 3, "personaje": "Mitch" }
+            ]
+        },
+        {
+            "id": 7,
+            "nombre": "Lucía Vargas",
+            "categoria": "juveniles",
+            "foto": null,
+            "obras": [
+                { "obraId": 1, "personaje": "Poncia" }
+            ]
+        },
+        {
+            "id": 8,
+            "nombre": "Andrés Condori",
+            "categoria": "aspirantes",
+            "foto": null,
+            "obras": [
+                { "obraId": 4, "personaje": "Valerio" }
+            ]
+        },
+        {
+            "id": 9,
+            "nombre": "Renata Gutiérrez",
+            "categoria": "aspirantes",
+            "foto": null,
+            "obras": []
+        },
+        {
+            "id": 10,
+            "nombre": "Nicolás Apaza",
+            "categoria": "aspirantes",
+            "foto": null,
+            "obras": []
+        }
+    ]
+}

@@ -730,6 +730,56 @@ body::after {
     color: var(--color-oro);
 }
 
+
+.obra-elenco {
+    margin-top: 1.25rem;
+}
+
+.obra-elenco-titulo {
+    color: var(--color-suave);
+}
+
+.obra-elenco ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin: 0.5rem 0 0.75rem;
+    list-style: none;
+}
+
+.obra-elenco li {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.35rem 1rem 0.35rem 0.35rem;
+    background: rgba(33, 15, 15, 0.48);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+}
+
+.obra-elenco-texto {
+    display: grid;
+    line-height: 1.2;
+}
+
+.obra-elenco-texto strong {
+    font-size: 0.95rem;
+}
+
+.obra-elenco-texto span {
+    color: var(--color-suave);
+    font-size: 0.85rem;
+}
+
+.obra-elenco-enlace {
+    color: var(--color-texto);
+    font-size: 0.95rem;
+    text-underline-offset: 0.2em;
+}
+
+
+
 .obra-destacada-acciones {
     display: flex;
     flex-wrap: wrap;
@@ -1046,5 +1096,162 @@ body::after {
     .pie-contenido {
         grid-template-columns: 1fr;
         gap: 2rem;
+    }
+}
+
+
+.elenco-pagina {
+    max-width: var(--ancho);
+    min-height: 70vh;
+    margin: 0 auto;
+    padding: 3rem 5% 5rem;
+}
+
+.elenco-encabezado {
+    margin-bottom: 2rem;
+}
+
+.elenco-etiqueta {
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.elenco-encabezado h1 {
+    margin-bottom: 0.75rem;
+    font-size: clamp(3rem, 7vw, 5.5rem);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+}
+
+.elenco-intro,
+.elenco-descripcion {
+    max-width: 42rem;
+    color: var(--color-suave);
+    font-size: 1.1rem;
+}
+
+.elenco-pestanas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 1.5rem;
+}
+
+.elenco-pestana {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 1.1rem;
+    color: var(--color-texto);
+    background: rgba(33, 15, 15, 0.48);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 1.05rem;
+    font-weight: 600;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.elenco-pestana:hover {
+    border-color: #d4af37;
+}
+
+.elenco-pestana[aria-selected="true"] {
+    color: #14100a;
+    background: #d4af37;
+    border-color: #d4af37;
+}
+
+.elenco-pestana-total {
+    min-width: 1.6rem;
+    padding: 0 0.4rem;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.elenco-descripcion {
+    margin-bottom: 1.5rem;
+}
+
+.elenco-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 1.25rem;
+}
+
+.elenco-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.75rem 1.25rem 1.25rem;
+    text-align: center;
+    background: linear-gradient(145deg, rgba(47, 15, 22, 0.85), rgba(15, 13, 12, 0.9));
+    border: 1px solid rgba(212, 175, 55, 0.32);
+    border-radius: 15px;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.elenco-card:hover {
+    border-color: rgba(212, 175, 55, 0.7);
+    transform: translateY(-4px);
+}
+
+.avatar-elenco.avatar-elenco-grande {
+    --avatar: 120px;
+    margin-bottom: 1rem;
+    border-width: 3px;
+}
+
+.elenco-card h2 {
+    margin-bottom: 0.25rem;
+    font-size: 1.4rem;
+}
+
+.elenco-categoria {
+    margin-bottom: 1rem;
+    color: #d4af37;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.elenco-obras {
+    display: grid;
+    width: 100%;
+    gap: 0.4rem;
+    list-style: none;
+}
+
+.elenco-obras li {
+    display: grid;
+    padding: 0.5rem 0.75rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--radio);
+    line-height: 1.3;
+}
+
+.elenco-obras span {
+    color: var(--color-suave);
+    font-size: 0.85rem;
+}
+
+.elenco-sin-obras,
+.elenco-estado {
+    color: var(--color-suave);
+}
+
+@media (max-width: 520px) {
+    .elenco-pagina {
+        padding-top: 2rem;
+    }
+
+    .elenco-grid {
+        grid-template-columns: 1fr;
     }
 }

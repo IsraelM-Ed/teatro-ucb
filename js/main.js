@@ -1,5 +1,6 @@
 import datosTeatro from '../data/obras.json';
-import { butacasOcupadas, cargarCatalogoTeatro, supabase } from './supabase.js';
+import { butacasOcupadas, cargarCatalogoTeatro, cargarElencoDeObras, supabase } from './supabase.js';
+import { avatarElenco, elencoDeObraDesdeBaseDeDatos, elencoDeObraLocal } from './elenco-datos.js';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -43,6 +44,21 @@ function pintarObraDestacada(obra) {
         const salida = funcion.salida ? dayjs(funcion.salida) : dayjs(funcion.fecha).add(obra.duracionMinutos, 'minute');
         return `<li><time datetime="${funcion.fecha}">${fmtHora(funcion.fecha)}</time><span>–</span><time datetime="${salida.format('YYYY-MM-DDTHH:mm')}">${fmtHora(salida)}</time></li>`;
     }).join('');
+    const elenco = obra.elenco ?? [];
+    const elencoHtml = elenco.length ? `
+            <div class="obra-elenco">
+                <span class="obra-elenco-titulo">Elenco</span>
+                <ul>${elenco.map(integrante => `
+                    <li>
+                        ${avatarElenco(integrante)}
+                        <span class="obra-elenco-texto">
+                            <strong>${escaparHtml(integrante.nombre)}</strong>
+                            <span>${escaparHtml(integrante.personaje)}</span>
+                        </span>
+                    </li>`).join('')}
+                </ul>
+                <a class="obra-elenco-enlace" href="${import.meta.env.BASE_URL}elenco.html">Ver elenco completo</a>
+            </div>` : '';
     panel.classList.remove('actualizando');
     panel.innerHTML = `
         <div class="obra-destacada-contenido">
@@ -61,6 +77,7 @@ function pintarObraDestacada(obra) {
                     <ul>${funciones}</ul>
                 </div>
             </div>
+            ${elencoHtml}
         </div>
         <div class="obra-destacada-acciones">
             <button class="btn btn-borde" type="button" data-video="${obra.id}"${obra.video ? '' : ' disabled aria-disabled="true"'}>Ver Avance</button>
@@ -369,12 +386,25 @@ function catalogoLocal() {
                 });
             }
         }
-        if (vigentes.length) obras.push({ ...obra, funciones: vigentes });
-    }
+        if (vigentes.length) obras.push({ ...obra, funciones: vigentes, elenco: elencoDeObraLocal(obra.id) });    }
 
     const pasadasUnicas = [...new Map(pasadas.map(item => [item.titulo, item])).values()];
     return { ...datosTeatro, obras, pasadas: pasadasUnicas };
 }
+
+
+async function agregarElencoDesdeBaseDeDatos(obras) {
+    try {
+        const participaciones = await cargarElencoDeObras();
+        for (const obra of obras) {
+            obra.elenco = elencoDeObraDesdeBaseDeDatos(participaciones.filter(item => item.obra_id === obra.id));
+        }
+    } catch (error) {
+        console.error('No se pudo cargar el elenco de las obras.', error);
+        for (const obra of obras) obra.elenco = [];
+    }
+}
+
 
 async function catalogoDesdeBaseDeDatos(rows) {
     const ahora = dayjs();
@@ -521,6 +551,8 @@ async function inicializarTeatro() {
     if (supabase) {
         try {
             datos = await catalogoDesdeBaseDeDatos(await cargarCatalogoTeatro());
+            await agregarElencoDesdeBaseDeDatos(datos.obras);
+
         } catch (error) {
             mostrarErrorCatalogo(error);
         }

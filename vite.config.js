@@ -17,6 +17,7 @@ export default defineConfig({
                 index: resolve(projectRoot, 'index.html'),
                 login: resolve(projectRoot, 'login.html'),
                 registro: resolve(projectRoot, 'registro.html'),
+                elenco: resolve(projectRoot, 'elenco.html'),
                 admin: resolve(projectRoot, 'admin.html')
             }
         }

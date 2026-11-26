@@ -68,6 +68,26 @@ export async function cargarCatalogoTeatro() {
   return data;
 }
 
+
+// ---------- Elenco ----------
+export async function cargarElenco() {
+  const { data, error } = await getSupabase()
+    .from('miembros_elenco')
+    .select('id, nombre, categoria, foto_url, elenco_obras(personaje, obras(id, titulo))')
+    .order('nombre');
+  if (error) throw error;
+  return data;
+}
+
+export async function cargarElencoDeObras() {
+  const { data, error } = await getSupabase()
+    .from('elenco_obras')
+    .select('obra_id, personaje, orden, miembros_elenco(id, nombre, categoria, foto_url)');
+  if (error) throw error;
+  return data;
+}
+
+
 export async function inscribirEnTaller({ taller_id, nombre, email, experiencia }) {
   const user = await usuarioActual();
   const { error } = await getSupabase().from('inscripciones_talleres').insert({

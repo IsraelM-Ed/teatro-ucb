@@ -84,6 +84,11 @@
           <span class="admin-accion-titulo">Gestionar obras</span>
           <span class="admin-accion-descripcion">Edita obras, horarios y administra los permisos.</span>
         </button>
+        <button class="admin-accion" type="button" data-abrir-dialogo="dlgElenco">
+          <span class="admin-accion-icono" aria-hidden="true">★</span>
+          <span class="admin-accion-titulo">Gestionar elenco</span>
+          <span class="admin-accion-descripcion">Agrega integrantes, cámbialos de paralelo o elimínalos.</span>
+        </button>
         <button id="descargarReporte" class="admin-accion" type="button">
           <span class="admin-accion-icono" aria-hidden="true">↓</span>
           <span class="admin-accion-titulo">Imprimir reporte</span>
@@ -164,6 +169,38 @@
   </dialog>
 
   <div id="toastRegion" class="toast-region" aria-live="polite" aria-relevant="additions"></div>
+  
+    <dialog id="dlgElenco" class="admin-dialog admin-dialog-gestion" aria-labelledby="tituloElenco">
+    <form class="admin-dialog-cerrar" method="dialog">
+      <button class="cerrar" aria-label="Cerrar">✕</button>
+    </form>
+    <p class="admin-eyebrow">Taller de teatro</p>
+    <h2 id="tituloElenco">Gestionar elenco</h2>
+    <p class="admin-dialog-intro">Agrega integrantes, cámbialos de paralelo o elimina a quienes ya no forman parte del taller. Para asignarlos a una obra, abre «Gestionar obras» y usa «Elenco de la obra».</p>
+    <p id="adminElencoEstado" class="admin-estado" role="status" aria-live="polite"></p>
+    <section class="admin-bloque">
+      <h3>Agregar integrante</h3>
+      <form id="formNuevoMiembro" class="admin-form">
+        <label for="miembroNombre">Nombre completo</label>
+        <input id="miembroNombre" name="nombre" required minlength="2" maxlength="120" autocomplete="off">
+        <label for="miembroCategoria">Paralelo</label>
+        <select id="miembroCategoria" name="categoria" required></select>
+        <label for="miembroFoto">Foto de perfil <span>(opcional · JPG, PNG o WebP, máximo 2 MB)</span></label>
+        <input id="miembroFoto" name="foto" type="file" accept="image/jpeg,image/png,image/webp">
+        <div class="admin-acciones">
+          <button class="btn btn-primario" type="submit">Agregar integrante</button>
+        </div>
+      </form>
+    </section>
+    <h3 class="admin-lista-titulo">Integrantes</h3>
+    <div class="admin-lista-busqueda">
+      <label for="buscarMiembros">Buscar integrantes</label>
+      <input id="buscarMiembros" type="search" placeholder="Nombre del integrante" autocomplete="off">
+    </div>
+    <p id="adminMiembrosSinResultados" class="admin-ayuda" role="status" hidden></p>
+    <div id="adminMiembros" class="admin-lista"></div>
+  </dialog>
+  
   <script type="module" src="./js/administracion.js"></script>
 </body>
 </html>

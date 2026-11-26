@@ -3,8 +3,8 @@ import { enlacesRedes } from './redes.js';
 class TeatroFooter extends HTMLElement {
     connectedCallback() {
         const base = import.meta.env.BASE_URL;
-        const isAuthPage = /\/(?:login|registro)\.html$/.test(window.location.pathname);
-        const home = isAuthPage ? `${base}index.html` : '';
+        const paginaActual = window.location.pathname.match(/\/(login|registro|elenco)\.html$/)?.[1] ?? 'inicio';
+        const home = paginaActual === 'inicio' ? '' : `${base}index.html`;
         const sectionLink = id => `${home}#${id}`;
         const anio = new Date().getFullYear();
 
@@ -24,6 +24,7 @@ class TeatroFooter extends HTMLElement {
                             <li><a href="${sectionLink('reserva')}">Reservar entradas</a></li>
                             <li><a href="${sectionLink('mis-entradas')}">Mis entradas</a></li>
                             <li><a href="${sectionLink('galeria')}">Obras pasadas</a></li>
+                            <li><a href="${base}elenco.html">Elenco</a></li>
                             <li><a href="${sectionLink('talleres')}">Talleres</a></li>
                         </ul>
                     </nav>

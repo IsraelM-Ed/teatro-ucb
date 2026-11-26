@@ -1,6 +1,7 @@
 import { cerrarSesion, supabase, usuarioActual, usuarioEsAdministrador } from './supabase.js';
 import { jsPDF } from 'jspdf';
 import { autoTable } from 'jspdf-autotable';
+import { avatarElenco, CATEGORIAS_ELENCO, nombreCategoria } from './elenco-datos.js';
 
 const panel = document.getElementById('adminDashboard');
 const sinAcceso = document.getElementById('adminSinAcceso');
@@ -15,6 +16,17 @@ const imagenPreview = document.getElementById('adminImagenPreview');
 const metricasDashboard = document.getElementById('adminMetricas');
 const proximasLista = document.getElementById('adminProximasLista');
 const horarios = ['15:00', '16:30', '18:00', '19:30', '20:00'];
+
+const miembrosContainer = document.getElementById('adminMiembros');
+const buscarMiembrosInput = document.getElementById('buscarMiembros');
+const miembrosSinResultados = document.getElementById('adminMiembrosSinResultados');
+const estadoElenco = document.getElementById('adminElencoEstado');
+const formNuevoMiembro = document.getElementById('formNuevoMiembro');
+const TIPOS_FOTO = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_FOTO = 2 * 1024 * 1024;
+let obrasAdmin = [];
+let elencoAdmin = { disponible: false, miembros: [], participaciones: [] };
+
 let verificacion = 0;
 let imagenPreviewUrl = null;
 document.getElementById('adminFecha').min = ahoraLocal();
@@ -113,7 +125,7 @@ async function verificarAcceso() {
 
 async function cargarAdministracion() {
     mostrarEstado('Cargando datos administrativos...');
-    const [obrasResult, funcionesResult, adminsResult, reservasResult, salasResult, talleresResult, user] = await Promise.all([
+    const [obrasResult, funcionesResult, adminsResult, user, datosElenco] = await Promise.all([
         supabase.from('obras')
             .select('id, titulo, director, duracion_minutos, sinopsis, video_url, activa')
             .order('id'),
@@ -121,10 +133,8 @@ async function cargarAdministracion() {
             .select('id, obra_id, sala_id, inicio, salida, estado')
             .order('inicio'),
         supabase.from('administradores').select('email').order('email'),
-        supabase.from('reservas').select('funcion_id, estado'),
-        supabase.from('salas').select('id, capacidad, activa'),
-        supabase.from('talleres').select('id, activo'),
-        usuarioActual()
+        usuarioActual(),
+        cargarDatosElenco()
     ]);
     const failed = [obrasResult, funcionesResult, adminsResult, reservasResult, salasResult, talleresResult].find(result => result.error);
     if (failed?.error) throw failed.error;
@@ -135,7 +145,14 @@ async function cargarAdministracion() {
         salasResult.data,
         talleresResult.data
     );
+
+    
+    obrasAdmin = obrasResult.data;
+    elencoAdmin = datosElenco;
     pintarAdminObras(obrasResult.data, funcionesResult.data);
+    pintarAdminMiembros();
+    
+    
     const principal = user?.email?.toLowerCase() === 'israelmujia5@gmail.com';
     administradoresContainer.replaceChildren(...adminsResult.data.map(admin => {
         const item = crearElemento('li', 'admin-admin-item');
@@ -240,6 +257,7 @@ function pintarAdminObras(obras, funciones) {
     for (const obra of obrasOrdenadas) {
         const presentaciones = funcionesPorObra.get(obra.id) ?? [];
         const card = crearElemento('details', 'admin-obra');
+        card.dataset.obraId = String(obra.id);
         card.dataset.busqueda = normalizarTexto(`${obra.titulo} ${obra.director ?? ''}`).toLocaleLowerCase('es-BO');
         const summary = crearElemento('summary', 'admin-obra-resumen');
         summary.append(
@@ -266,7 +284,7 @@ function pintarAdminObras(obras, funciones) {
         removeWorkButton.dataset.eliminarObra = String(obra.id);
         const actions = crearElemento('div', 'admin-obra-acciones');
         actions.append(editDetails, removeWorkButton);
-        content.append(actions);
+        content.append(actions, bloqueElencoObra(obra));
 
         if (presentaciones.length) {
             const list = crearElemento('div', 'admin-funciones');
@@ -484,6 +502,8 @@ obrasContainer.addEventListener('submit', async event => {
     const values = formValues(form);
     const button = form.querySelector('button[type="submit"]');
     button.disabled = true;
+    let obraConElencoEditado = null;
+
     try {
         if (form.dataset.editarObra) {
             if (!esYouTube(values.video_url)) throw new Error('El tráiler debe ser un enlace válido de YouTube.');
@@ -523,8 +543,23 @@ obrasContainer.addEventListener('submit', async event => {
                 estado: 'programada'
             });
             if (error) throw error;
+
+        } else if (form.dataset.agregarElenco) {
+            const obraId = Number(form.dataset.agregarElenco);
+            const { error } = await supabase.from('elenco_obras').insert({
+                obra_id: obraId,
+                miembro_id: Number(values.miembro_id),
+                personaje: values.personaje.trim(),
+                orden: elencoAdmin.participaciones.filter(item => item.obra_id === obraId).length
+            });
+            if (error) throw error;
+            obraConElencoEditado = obraId;
         }
+
+
+        
         await cargarAdministracion();
+        if (obraConElencoEditado) reabrirElencoObra(obraConElencoEditado);
     } catch (error) {
         manejarError(error, 'No se pudo guardar el cambio administrativo.');
     } finally {
@@ -533,6 +568,28 @@ obrasContainer.addEventListener('submit', async event => {
 });
 
 obrasContainer.addEventListener('click', async event => {
+    
+    const elencoButton = event.target.closest('[data-quitar-elenco]');
+    if (elencoButton) {
+        if (!window.confirm(`¿Quitar a ${elencoButton.dataset.nombre} del elenco de esta obra?`)) return;
+        const obraId = Number(elencoButton.dataset.obra);
+        elencoButton.disabled = true;
+        try {
+            const { error } = await supabase.from('elenco_obras')
+                .delete()
+                .eq('obra_id', obraId)
+                .eq('miembro_id', Number(elencoButton.dataset.quitarElenco));
+            if (error) throw error;
+            await cargarAdministracion();
+            reabrirElencoObra(obraId);
+        } catch (error) {
+            manejarError(error, 'No se pudo quitar al integrante del elenco de la obra.');
+        } finally {
+            elencoButton.disabled = false;
+        }
+        return;
+    }
+    
     const functionButton = event.target.closest('[data-retirar-funcion]');
     if (functionButton) {
         if (!window.confirm('¿Retirar esta función de la cartelera? Dejará de aparecer para el público y no aceptará reservas; se conservarán el registro y las reservas para las estadísticas.')) return;
@@ -602,6 +659,302 @@ administradoresContainer.addEventListener('click', async event => {
         button.disabled = false;
     }
 });
+
+// ---------- Elenco ----------
+async function cargarDatosElenco() {
+    const [miembrosResult, participacionesResult] = await Promise.all([
+        supabase.from('miembros_elenco').select('id, nombre, categoria, foto_url, foto_path').order('nombre'),
+        supabase.from('elenco_obras').select('obra_id, miembro_id, personaje, orden').order('orden')
+    ]);
+    const failed = [miembrosResult, participacionesResult].find(result => result.error);
+    if (failed?.error) {
+        console.error('No se pudo cargar el elenco. Revisa que la migración del elenco esté aplicada.', failed.error);
+        return { disponible: false, miembros: [], participaciones: [] };
+    }
+    return { disponible: true, miembros: miembrosResult.data, participaciones: participacionesResult.data };
+}
+
+function fotoMiembro(miembro) {
+    return { nombre: miembro.nombre, foto: miembro.foto_url };
+}
+
+function opcionesCategorias(seleccionada = '') {
+    return CATEGORIAS_ELENCO.map(categoria =>
+        `<option value="${categoria.id}"${categoria.id === seleccionada ? ' selected' : ''}>${escapar(categoria.nombre)}</option>`
+    ).join('');
+}
+
+function opcionesMiembros(miembros) {
+    const grupos = CATEGORIAS_ELENCO.map(categoria => {
+        const integrantes = miembros.filter(miembro => miembro.categoria === categoria.id);
+        if (!integrantes.length) return '';
+        return `<optgroup label="${escapar(categoria.nombre)}">${integrantes.map(miembro =>
+            `<option value="${miembro.id}">${escapar(miembro.nombre)}</option>`).join('')}</optgroup>`;
+    }).join('');
+    return `<option value="">Selecciona un integrante</option>${grupos}`;
+}
+
+function bloqueElencoObra(obra) {
+    const participaciones = elencoAdmin.participaciones.filter(item => item.obra_id === obra.id);
+    const details = crearElemento('details', 'admin-agregar-funcion admin-elenco-obra');
+    details.append(crearElemento('summary', '', `Elenco de la obra (${participaciones.length})`));
+    const contenido = crearElemento('div', 'admin-elenco-obra-contenido');
+    details.append(contenido);
+
+    if (!elencoAdmin.disponible) {
+        contenido.append(crearElemento('p', 'admin-ayuda', 'El elenco no está disponible. Aplica la migración del elenco en Supabase.'));
+        return details;
+    }
+
+    const lista = crearElemento('ul', 'admin-elenco-lista');
+    for (const participacion of participaciones) {
+        const miembro = elencoAdmin.miembros.find(item => item.id === participacion.miembro_id);
+        if (!miembro) continue;
+        const item = crearElemento('li', 'admin-elenco-item');
+        item.innerHTML = `
+            ${avatarElenco(fotoMiembro(miembro))}
+            <span class="admin-elenco-texto">
+                <strong>${escapar(miembro.nombre)}</strong>
+                <span>${escapar(participacion.personaje)} · ${escapar(nombreCategoria(miembro.categoria))}</span>
+            </span>`;
+        const quitar = crearElemento('button', 'admin-admin-quitar', 'Quitar');
+        quitar.type = 'button';
+        quitar.dataset.quitarElenco = String(miembro.id);
+        quitar.dataset.obra = String(obra.id);
+        quitar.dataset.nombre = miembro.nombre;
+        item.append(quitar);
+        lista.append(item);
+    }
+    if (!lista.children.length) lista.append(crearElemento('li', 'admin-ayuda', 'Todavía no hay integrantes asignados.'));
+    contenido.append(lista);
+
+    const disponibles = elencoAdmin.miembros.filter(miembro =>
+        !participaciones.some(participacion => participacion.miembro_id === miembro.id));
+    if (!disponibles.length) {
+        contenido.append(crearElemento('p', 'admin-ayuda', elencoAdmin.miembros.length
+            ? 'Todos los integrantes ya forman parte de esta obra.'
+            : 'Primero registra integrantes en «Gestionar elenco».'));
+        return details;
+    }
+
+    const form = document.createElement('form');
+    form.className = 'admin-form admin-elenco-form';
+    form.dataset.agregarElenco = String(obra.id);
+    form.innerHTML = `
+        <label>Integrante<select name="miembro_id" required>${opcionesMiembros(disponibles)}</select></label>
+        <label>Personaje o rol<input name="personaje" required maxlength="120" placeholder="Ej.: Blanche DuBois"></label>
+        <button class="btn" type="submit">Agregar al elenco</button>`;
+    contenido.append(form);
+    return details;
+}
+
+function reabrirElencoObra(obraId) {
+    const card = obrasContainer.querySelector(`.admin-obra[data-obra-id="${obraId}"]`);
+    if (!card) return;
+    card.open = true;
+    const elenco = card.querySelector('.admin-elenco-obra');
+    if (elenco) elenco.open = true;
+}
+
+function pintarAdminMiembros() {
+    for (const element of formNuevoMiembro.elements) element.disabled = !elencoAdmin.disponible;
+    if (!elencoAdmin.disponible) {
+        mostrarEstadoElenco('El elenco no está disponible. Aplica la migración del elenco en Supabase.', true);
+        miembrosContainer.replaceChildren();
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    for (const categoria of CATEGORIAS_ELENCO) {
+        const integrantes = elencoAdmin.miembros.filter(miembro => miembro.categoria === categoria.id);
+        const grupo = crearElemento('section', 'admin-elenco-grupo');
+        grupo.append(crearElemento('h4', '', `${categoria.nombre} (${integrantes.length})`));
+        if (!integrantes.length) grupo.append(crearElemento('p', 'admin-ayuda', 'Sin integrantes en este paralelo.'));
+        for (const miembro of integrantes) grupo.append(tarjetaMiembro(miembro));
+        fragment.append(grupo);
+    }
+    miembrosContainer.replaceChildren(fragment);
+    filtrarMiembrosAdmin();
+}
+
+function tarjetaMiembro(miembro) {
+    const participaciones = elencoAdmin.participaciones.filter(item => item.miembro_id === miembro.id);
+    const card = crearElemento('details', 'admin-obra admin-miembro');
+    card.dataset.miembroId = String(miembro.id);
+    card.dataset.busqueda = normalizarTexto(miembro.nombre).toLocaleLowerCase('es-BO');
+
+    const summary = crearElemento('summary', 'admin-obra-resumen');
+    summary.innerHTML = `
+        ${avatarElenco(fotoMiembro(miembro))}
+        <span class="admin-obra-titulo">${escapar(miembro.nombre)}</span>
+        <span class="admin-badge">${escapar(nombreCategoria(miembro.categoria))}</span>
+        <span class="admin-obra-total">${participaciones.length} ${participaciones.length === 1 ? 'obra' : 'obras'}</span>`;
+
+    const content = crearElemento('div', 'admin-obra-contenido');
+    const obras = participaciones
+        .map(participacion => {
+            const obra = obrasAdmin.find(item => item.id === participacion.obra_id);
+            return obra ? `${obra.titulo} (${participacion.personaje})` : null;
+        })
+        .filter(Boolean);
+    content.append(crearElemento('p', 'admin-ayuda', obras.length
+        ? `Participa en: ${obras.join(', ')}.`
+        : 'Todavía no participa en ninguna obra.'));
+
+    const form = document.createElement('form');
+    form.className = 'admin-form admin-form-miembro';
+    form.dataset.editarMiembro = String(miembro.id);
+    form.innerHTML = `
+        <label>Nombre completo<input name="nombre" required minlength="2" maxlength="120" value="${escapar(miembro.nombre)}"></label>
+        <label>Paralelo<select name="categoria" required>${opcionesCategorias(miembro.categoria)}</select></label>
+        <label>Cambiar foto <span>(opcional)</span><input name="foto" type="file" accept="image/jpeg,image/png,image/webp"></label>
+        ${miembro.foto_url ? '<label class="admin-check"><input name="quitar_foto" type="checkbox"> Quitar la foto actual</label>' : ''}
+        <div class="admin-acciones"><button class="btn" type="submit">Guardar cambios</button></div>`;
+
+    const eliminar = crearElemento('button', 'btn btn-eliminar', 'Eliminar integrante');
+    eliminar.type = 'button';
+    eliminar.dataset.eliminarMiembro = String(miembro.id);
+    content.append(form, eliminar);
+    card.append(summary, content);
+    return card;
+}
+
+function filtrarMiembrosAdmin() {
+    const busqueda = normalizarTexto(buscarMiembrosInput.value).toLocaleLowerCase('es-BO');
+    let coincidencias = 0;
+    const tarjetas = miembrosContainer.querySelectorAll('.admin-miembro');
+    for (const tarjeta of tarjetas) {
+        const coincide = tarjeta.dataset.busqueda.includes(busqueda);
+        tarjeta.hidden = !coincide;
+        if (coincide) coincidencias++;
+    }
+
+    miembrosSinResultados.hidden = coincidencias > 0;
+    miembrosSinResultados.textContent = tarjetas.length && busqueda
+        ? 'No se encontraron integrantes que coincidan con la búsqueda.'
+        : 'Todavía no hay integrantes registrados.';
+}
+
+function mostrarEstadoElenco(texto, error = false) {
+    estadoElenco.textContent = texto;
+    estadoElenco.classList.toggle('admin-estado-error', error);
+}
+
+function manejarErrorElenco(error, contexto) {
+    console.error(contexto, error);
+    mostrarEstadoElenco(error instanceof Error ? error.message : contexto, true);
+}
+
+async function subirFotoMiembro(archivo) {
+    if (!(archivo instanceof File) || archivo.size === 0) return null;
+    if (!TIPOS_FOTO.includes(archivo.type)) throw new Error('La foto debe ser JPG, PNG o WebP.');
+    if (archivo.size > MAX_FOTO) throw new Error('La foto no puede pesar más de 2 MB.');
+    const extension = archivo.type === 'image/jpeg' ? 'jpg' : archivo.type.split('/')[1];
+    const path = `miembros/${crypto.randomUUID()}.${extension}`;
+    const { error } = await supabase.storage.from('elenco').upload(path, archivo, {
+        contentType: archivo.type,
+        cacheControl: '3600'
+    });
+    if (error) throw error;
+    const { data } = supabase.storage.from('elenco').getPublicUrl(path);
+    return { foto_url: data.publicUrl, foto_path: path };
+}
+
+async function borrarFotoMiembro(path) {
+    if (!path) return;
+    const { error } = await supabase.storage.from('elenco').remove([path]);
+    if (error) console.error('No se pudo borrar la foto anterior del elenco.', error);
+}
+
+function reabrirMiembro(miembroId) {
+    const card = miembrosContainer.querySelector(`.admin-miembro[data-miembro-id="${miembroId}"]`);
+    if (card) card.open = true;
+}
+
+document.getElementById('miembroCategoria').innerHTML = opcionesCategorias();
+
+formNuevoMiembro.addEventListener('submit', async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector('button[type="submit"]');
+    if (!form.reportValidity()) return;
+    button.disabled = true;
+    let foto = null;
+    try {
+        const values = formValues(form);
+        foto = await subirFotoMiembro(values.foto);
+        const { error } = await supabase.from('miembros_elenco').insert({
+            nombre: values.nombre.trim(),
+            categoria: values.categoria,
+            foto_url: foto?.foto_url ?? null,
+            foto_path: foto?.foto_path ?? null
+        });
+        if (error) throw error;
+        foto = null;
+        form.reset();
+        await cargarAdministracion();
+        mostrarEstadoElenco(`${values.nombre.trim()} se agregó a ${nombreCategoria(values.categoria)}.`);
+    } catch (error) {
+        await borrarFotoMiembro(foto?.foto_path);
+        manejarErrorElenco(error, 'No se pudo agregar al integrante.');
+    } finally {
+        button.disabled = !elencoAdmin.disponible;
+    }
+});
+
+miembrosContainer.addEventListener('submit', async event => {
+    event.preventDefault();
+    const form = event.target;
+    const miembro = elencoAdmin.miembros.find(item => String(item.id) === form.dataset.editarMiembro);
+    if (!miembro || !form.reportValidity()) return;
+    const button = form.querySelector('button[type="submit"]');
+    button.disabled = true;
+    let fotoNueva = null;
+    try {
+        const values = formValues(form);
+        const cambios = { nombre: values.nombre.trim(), categoria: values.categoria };
+        fotoNueva = await subirFotoMiembro(values.foto);
+        if (fotoNueva) Object.assign(cambios, fotoNueva);
+        else if (values.quitar_foto) Object.assign(cambios, { foto_url: null, foto_path: null });
+        const { error } = await supabase.from('miembros_elenco').update(cambios).eq('id', miembro.id);
+        if (error) throw error;
+        if (fotoNueva || values.quitar_foto) await borrarFotoMiembro(miembro.foto_path);
+        fotoNueva = null;
+        await cargarAdministracion();
+        reabrirMiembro(miembro.id);
+        mostrarEstadoElenco(`Se guardaron los cambios de ${cambios.nombre}.`);
+    } catch (error) {
+        await borrarFotoMiembro(fotoNueva?.foto_path);
+        manejarErrorElenco(error, 'No se pudieron guardar los cambios del integrante.');
+    } finally {
+        button.disabled = false;
+    }
+});
+
+miembrosContainer.addEventListener('click', async event => {
+    const button = event.target.closest('[data-eliminar-miembro]');
+    if (!button) return;
+    const miembro = elencoAdmin.miembros.find(item => String(item.id) === button.dataset.eliminarMiembro);
+    if (!miembro) return;
+    const total = elencoAdmin.participaciones.filter(item => item.miembro_id === miembro.id).length;
+    const aviso = total ? ` También se quitará de ${total} ${total === 1 ? 'obra' : 'obras'}.` : '';
+    if (!window.confirm(`¿Eliminar a ${miembro.nombre} del elenco? Esta acción no se puede deshacer.${aviso}`)) return;
+    button.disabled = true;
+    try {
+        const { error } = await supabase.from('miembros_elenco').delete().eq('id', miembro.id);
+        if (error) throw error;
+        await borrarFotoMiembro(miembro.foto_path);
+        await cargarAdministracion();
+        mostrarEstadoElenco(`${miembro.nombre} ya no forma parte del elenco.`);
+    } catch (error) {
+        manejarErrorElenco(error, 'No se pudo eliminar al integrante.');
+        button.disabled = false;
+    }
+});
+
+buscarMiembrosInput.addEventListener('input', filtrarMiembrosAdmin);
+
+
 
 function normalizarTexto(value) {
     return String(value ?? '')

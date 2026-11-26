@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Elenco | Teatro UCB</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Afacad:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="css/styles.css">
+    </head>
+    <body>
+        <a class="saltar" href="#principal">Saltar al contenido</a>
+
+        <teatro-navigation></teatro-navigation>
+
+        <main id="principal" class="elenco-pagina">
+            <header class="elenco-encabezado">
+                <p class="elenco-etiqueta">Taller de Teatro UCB</p>
+                <h1>Nuestro elenco</h1>
+                <p class="elenco-intro">Conoce a quienes dan vida a cada función, organizados por paralelo.</p>
+            </header>
+
+            <div class="elenco-pestanas" id="pestanasElenco" role="tablist" aria-label="Paralelos del elenco"></div>
+
+            <section id="panelElenco" class="elenco-panel" role="tabpanel" tabindex="0">
+                <p class="elenco-descripcion" id="descripcionCategoria"></p>
+                <div class="elenco-grid" id="listaElenco" aria-live="polite">
+                    <p class="elenco-estado" role="status">Cargando elenco...</p>
+                </div>
+            </section>
+        </main>
+
+        <teatro-footer></teatro-footer>
+
+        <script type="module" src="js/elenco.js"></script>
+    </body>
+</html>

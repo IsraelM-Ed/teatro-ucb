@@ -27,6 +27,7 @@ function actualizarFondoTeatro(screen, functionImage, base) {
         },
         talleres: { image: fondoEscenario, opacity: 0.1, filter: 'blur(3px)' },
         galeria: { image: fondoEscenario, opacity: 0.3, filter: 'blur(3px)' },
+        elenco: { image: fondoEscenario, opacity: 0.3, filter: 'blur(3px)' },
         ubicacion: { image: fondoEscenario, opacity: 0.3, filter: 'blur(3px)' }
     };
     const nextBackground = backgrounds[screen] ?? { image: 'none', opacity: 1 };
@@ -69,12 +70,12 @@ function actualizarFondoTeatro(screen, functionImage, base) {
 class TeatroNavigation extends HTMLElement {
     connectedCallback() {
         const base = import.meta.env.BASE_URL;
-        const isAuthPage = /\/(?:login|registro)\.html$/.test(window.location.pathname);
-        const home = isAuthPage ? `${base}index.html` : '';
+        const paginaActual = window.location.pathname.match(/\/(login|registro|elenco)\.html$/)?.[1] ?? 'inicio';
+        const isAuthPage = paginaActual === 'login' || paginaActual === 'registro';
+        const home = paginaActual === 'inicio' ? '' : `${base}index.html`;
         const sectionLink = id => `${home}#${id}`;
         window.actualizarFondoTeatro = (screen, functionImage) => actualizarFondoTeatro(screen, functionImage, base);
-        const initialScreen = isAuthPage ? 'auth' : 'hero';
-        document.body.dataset.screen = initialScreen;
+        const initialScreen = isAuthPage ? 'auth' : paginaActual === 'elenco' ? 'elenco' : 'hero';        document.body.dataset.screen = initialScreen;
         actualizarFondoTeatro(initialScreen, null, base);
 
         this.innerHTML = `
@@ -90,6 +91,7 @@ class TeatroNavigation extends HTMLElement {
                         <li><a href="${sectionLink('reserva')}">Reservar</a></li>
                         <li><a href="${sectionLink('mis-entradas')}">Mis entradas</a></li>
                         <li><a href="${sectionLink('galeria')}">Galería</a></li>
+                        <li><a href="${base}elenco.html"${paginaActual === 'elenco' ? ' aria-current="page"' : ''}>Elenco</a></li>
                         <li><a href="${sectionLink('talleres')}">Talleres</a></li>
                         <li><a href="${sectionLink('ubicacion')}">Ubicación</a></li>
                     </ul>
