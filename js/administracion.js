@@ -239,7 +239,7 @@ function pintarDashboardAdmin(obras, funciones, reservas, salas, talleres) {
     if (!funcionesProximas.length) {
         proximasLista.replaceChildren(crearElemento('li', 'admin-proxima-vacia', 'No hay funciones próximas programadas.'));
     } else {
-        proximasLista.replaceChildren(...funcionesProximas.slice(0, 5).map(funcion => {
+        proximasLista.replaceChildren(...funcionesProximas.map(funcion => {
             const obra = obrasPorId.get(funcion.obra_id);
             const sala = salasPorId.get(funcion.sala_id);
             const reservasFuncion = reservasPorFuncion.get(funcion.id) ?? 0;

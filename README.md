@@ -50,7 +50,8 @@ las migraciones, en orden, desde **Supabase → SQL Editor**:
 4. `teatro-ucb-supabase/supabase/migrations/20261125192100_work_images_required.sql`
 5. `teatro-ucb-supabase/supabase/migrations/20261125202000_admin_workshops.sql`
 6. `teatro-ucb-supabase/supabase/migrations/20261125214000_reservation_holds_and_simulated_qr.sql`
-7. `teatro-ucb-supabase/supabase/migrations/20261126120000_elenco.sql`
+7. `teatro-ucb-supabase/supabase/migrations/20261125230000_user_reservation_access.sql`
+8. `teatro-ucb-supabase/supabase/migrations/20261126120000_elenco.sql`
 
 La migración administrativa protege las operaciones con RLS y asigna el rol
 inicial a `israelmujia5@gmail.com` si la cuenta ya existe o cuando se registra.
@@ -73,6 +74,9 @@ y con qué personaje). La lectura es pública y solo los administradores pueden
 modificarlas. También crea el bucket público `elenco` para las fotos de perfil,
 limitado a JPG, PNG o WebP de hasta 2 MB. Al eliminar un integrante se quita de
 todas las obras en las que participaba.
+La migración de acceso a reservas garantiza que los usuarios autenticados puedan
+consultar sus propias entradas mediante RLS; los administradores conservan
+acceso administrativo.
 Las migraciones SQL deben aplicarse en el proyecto Supabase de despliegue; no se
 ejecutan automáticamente desde este repositorio.
 
@@ -141,6 +145,15 @@ npm run preview
 Configura `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` como secretos de GitHub
 Actions y ejecuta el workflow de Pages. La configuración de Vite toma el nombre
 del repositorio para construir las rutas del sitio.
+
+## Publicación en Vercel
+
+En Vercel, abre el proyecto y ve a **Settings → Environment Variables**. Añade
+`VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` con los valores del proyecto
+Supabase y habilítalos para los entornos que uses (Production y Preview). Guarda
+los cambios y vuelve a desplegar: Vite incorpora estas variables durante la
+compilación. Usa `dist` como directorio de salida si Vercel no lo detecta
+automáticamente. No configures la clave `service_role` en el frontend.
 
 Los enlaces a redes sociales (YouTube, TikTok e Instagram) se configuran en
 `js/redes.js` y se muestran como íconos SVG en la cabecera y en el pie de
