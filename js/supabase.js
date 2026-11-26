@@ -18,7 +18,7 @@ export const supabase = supabaseUrl && supabaseAnonKey && isValidSupabaseUrl(sup
 
 function getSupabase() {
   if (!supabase) {
-    throw new Error('Supabase no está configurado. Añade VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en GitHub Actions Secrets y vuelve a desplegar.');
+    throw new Error('Supabase no está configurado. Define VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en las variables de entorno de Vercel o GitHub Actions y vuelve a desplegar.');
   }
   return supabase;
 }
