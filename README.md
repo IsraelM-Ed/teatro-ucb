@@ -8,7 +8,6 @@
 
 El Taller de Teatro de la UCB necesitaba un lugar para mostrar su temporada y gestionar las entradas sin papel. El público consulta la cartelera, conoce al elenco, elige su butaca viendo cómo se verá el escenario desde ella y recibe sus entradas con código QR. El equipo del taller administra obras, funciones, talleres y elenco desde un panel propio.
 
-![Página de inicio de Teatro UCB](https://israelm-ed.github.io/teatro-ucb/)
 
 | Funcionalidad | Descripción |
 |---|---|
