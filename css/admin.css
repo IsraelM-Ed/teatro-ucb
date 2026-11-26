@@ -223,7 +223,7 @@
 
 .admin-acciones-principales {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
     gap: clamp(0.85rem, 2vw, 1.5rem);
 }
 
@@ -380,6 +380,30 @@
 .admin-lista {
     display: grid;
     gap: 1rem;
+}
+
+.admin-gestion-talleres {
+    margin-top: 1.25rem;
+    padding: clamp(1rem, 2.5vw, 1.5rem);
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    border-radius: 14px;
+}
+
+.admin-gestion-talleres h3 {
+    margin-bottom: 0.8rem;
+    font-size: 1.25rem;
+}
+
+.admin-taller-meta {
+    max-width: 24rem;
+    text-align: right;
+    white-space: normal;
+}
+
+.admin-taller-detalle {
+    color: var(--color-suave);
+    overflow-wrap: anywhere;
 }
 
 .admin-lista-busqueda {

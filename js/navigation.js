@@ -123,9 +123,31 @@ class TeatroNavigation extends HTMLElement {
 
         const button = this.querySelector('.menu-btn');
         const menu = this.querySelector('#menu');
+        this.scrollState = { lastY: window.scrollY, direction: 0, distance: 0 };
+        this.handleScroll = () => {
+            const currentY = window.scrollY;
+            const delta = currentY - this.scrollState.lastY;
+            const direction = Math.sign(delta);
+            if (direction && direction !== this.scrollState.direction) {
+                this.scrollState.direction = direction;
+                this.scrollState.distance = 0;
+            }
+            this.scrollState.distance += delta;
+            const menuAbierto = menu.classList.contains('abierto');
+            if (currentY <= 80 || menuAbierto || (direction < 0 && this.scrollState.distance <= -12)) {
+                this.classList.remove('oculta-por-scroll');
+                this.scrollState.distance = 0;
+            } else if (direction > 0 && this.scrollState.distance >= 12) {
+                this.classList.add('oculta-por-scroll');
+                this.scrollState.distance = 0;
+            }
+            this.scrollState.lastY = currentY;
+        };
+        window.addEventListener('scroll', this.handleScroll, { passive: true });
         button.addEventListener('click', () => {
             const abierto = menu.classList.toggle('abierto');
             button.setAttribute('aria-expanded', String(abierto));
+            if (abierto) this.classList.remove('oculta-por-scroll');
         });
         menu.addEventListener('click', event => {
             const link = event.target.closest('a');
@@ -144,6 +166,7 @@ class TeatroNavigation extends HTMLElement {
 
     disconnectedCallback() {
         this.subscription?.unsubscribe();
+        if (this.handleScroll) window.removeEventListener('scroll', this.handleScroll);
     }
 
     actualizarSesion(user, base) {

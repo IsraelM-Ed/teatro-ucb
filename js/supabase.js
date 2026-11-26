@@ -68,6 +68,16 @@ export async function cargarCatalogoTeatro() {
   return data;
 }
 
+export async function cargarTalleres() {
+  const { data, error } = await getSupabase()
+    .from('talleres')
+    .select('id, titulo, horario, cupos, descripcion, img, instructor, video_url')
+    .eq('activo', true)
+    .order('id');
+  if (error) throw error;
+  return data;
+}
+
 export async function inscribirEnTaller({ taller_id, nombre, email, experiencia }) {
   const user = await usuarioActual();
   const { error } = await getSupabase().from('inscripciones_talleres').insert({

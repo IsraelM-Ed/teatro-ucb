@@ -48,6 +48,7 @@ las migraciones, en orden, desde **Supabase → SQL Editor**:
 2. `teatro-ucb-supabase/supabase/migrations/20261125170000_admin_theater.sql`
 3. `teatro-ucb-supabase/supabase/migrations/20261125190000_reservations_admin_security.sql`
 4. `teatro-ucb-supabase/supabase/migrations/20261125192100_work_images_required.sql`
+5. `teatro-ucb-supabase/supabase/migrations/20261125202000_admin_workshops.sql`
 
 La migración administrativa protege las operaciones con RLS y asigna el rol
 inicial a `israelmujia5@gmail.com` si la cuenta ya existe o cuando se registra.
@@ -58,6 +59,9 @@ administrador principal retirar roles delegados.
 La migración de imágenes crea el bucket público `obras-portadas`, limitado a
 archivos JPG, PNG o WebP de hasta 5 MB; solo administradores pueden subirlos.
 Cada obra nueva requiere una imagen, que se usa como portada y fondo.
+La migración de talleres habilita las altas y ediciones protegidas por RLS,
+añade los campos de instructor y tráiler, y crea `talleres-portadas` para las
+imágenes de los cursos.
 Las migraciones SQL deben aplicarse en el proyecto Supabase de despliegue; no se
 ejecutan automáticamente desde este repositorio.
 
@@ -73,7 +77,7 @@ ejecutan automáticamente desde este repositorio.
   estar incluida en la publicación `supabase_realtime`.
 - Catálogo de obras pasadas e inscripciones a talleres.
 - Panel administrativo independiente en `admin.html`, con altas y edición de
-  obras, funciones, permisos, un resumen de actividad y reportes.
+  obras, funciones y talleres, permisos, un resumen de actividad y reportes.
 - Selección de butacas animada, notificaciones toast y placeholders skeleton
   durante las cargas.
 - GitHub Pages se configura con la acción del repositorio. `npm run build`

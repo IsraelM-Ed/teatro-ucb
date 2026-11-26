@@ -84,6 +84,11 @@
           <span class="admin-accion-titulo">Gestionar obras</span>
           <span class="admin-accion-descripcion">Edita obras, horarios y administra los permisos.</span>
         </button>
+        <button class="admin-accion" type="button" data-abrir-dialogo="dlgGestionTalleres">
+          <span class="admin-accion-icono" aria-hidden="true">✦</span>
+          <span class="admin-accion-titulo">Gestionar talleres</span>
+          <span class="admin-accion-descripcion">Crea, edita y retira talleres o cursos.</span>
+        </button>
         <button id="descargarReporte" class="admin-accion" type="button">
           <span class="admin-accion-icono" aria-hidden="true">↓</span>
           <span class="admin-accion-titulo">Imprimir reporte</span>
@@ -161,6 +166,63 @@
     </div>
     <p id="adminObrasSinResultados" class="admin-ayuda" role="status" hidden></p>
     <div id="adminObras" class="admin-lista"></div>
+  </dialog>
+
+  <dialog id="dlgGestionTalleres" class="admin-dialog admin-dialog-gestion" aria-labelledby="tituloGestionTalleres">
+    <form class="admin-dialog-cerrar" method="dialog">
+      <button class="cerrar" aria-label="Cerrar">✕</button>
+    </form>
+    <p class="admin-eyebrow">Formación</p>
+    <h2 id="tituloGestionTalleres">Gestionar talleres y cursos</h2>
+    <p class="admin-dialog-intro">Administra horarios, instructores y cupos. Al retirar un taller, sus inscripciones se conservan para los reportes.</p>
+
+    <section class="admin-bloque admin-gestion-talleres" aria-labelledby="adminTallerFormularioTitulo">
+      <h3 id="adminTallerFormularioTitulo">Agregar taller o curso</h3>
+      <form id="formTallerAdmin" class="admin-form admin-form-taller" novalidate>
+        <input id="adminTallerId" name="id" type="hidden">
+        <label for="adminTallerTitulo">Nombre del taller o curso</label>
+        <input id="adminTallerTitulo" name="titulo" required maxlength="160">
+        <label for="adminTallerInstructor">Instructor o facilitador</label>
+        <input id="adminTallerInstructor" name="instructor" required maxlength="160">
+        <label for="adminTallerDescripcion">Descripción <span>(opcional)</span></label>
+        <textarea id="adminTallerDescripcion" name="descripcion" rows="3" maxlength="1200" placeholder="Si la dejas vacía, usaremos una descripción genérica."></textarea>
+        <label for="adminTallerImagen">Imagen de portada <span>(obligatoria al crear; JPG, PNG o WebP; máximo 5 MB)</span></label>
+        <input id="adminTallerImagen" name="imagen" type="file" accept="image/jpeg,image/png,image/webp" required>
+        <img id="adminTallerImagenPreview" class="admin-imagen-preview" alt="Vista previa de la portada del taller" hidden>
+        <label for="adminTallerVideo">Enlace de YouTube <span>(opcional)</span></label>
+        <input id="adminTallerVideo" name="video_url" type="url" placeholder="https://www.youtube.com/watch?v=..." pattern="https?://(www\.)?(youtube\.com|youtu\.be)/.+" title="Usa un enlace de YouTube válido.">
+        <div class="admin-horario">
+          <label for="adminTallerHorario">Horario preestablecido
+            <select id="adminTallerHorario" name="horario" required>
+              <option value="">Selecciona un horario</option>
+              <option value="Lunes 15:30">Lunes 15:30</option>
+              <option value="Lunes 18:30">Lunes 18:30</option>
+              <option value="Martes 18:30">Martes 18:30</option>
+              <option value="Miércoles 18:30">Miércoles 18:30</option>
+              <option value="Jueves 18:30">Jueves 18:30</option>
+              <option value="Viernes 18:30">Viernes 18:30</option>
+              <option value="Sábado 10:00">Sábado 10:00</option>
+              <option value="Sábado 15:00">Sábado 15:00</option>
+            </select>
+          </label>
+          <label for="adminTallerCupos">Cupos disponibles
+            <input id="adminTallerCupos" name="cupos" type="number" min="0" step="1" required>
+          </label>
+        </div>
+        <div class="admin-dialog-footer">
+          <button id="cancelarEdicionTaller" class="btn btn-borde" type="button" hidden>Cancelar edición</button>
+          <button class="btn btn-primario" type="submit">Crear taller</button>
+        </div>
+      </form>
+    </section>
+
+    <h3 class="admin-lista-titulo">Talleres registrados</h3>
+    <div class="admin-lista-busqueda">
+      <label for="buscarTalleres">Buscar talleres</label>
+      <input id="buscarTalleres" type="search" placeholder="Nombre, instructor u horario" autocomplete="off">
+    </div>
+    <p id="adminTalleresSinResultados" class="admin-ayuda" role="status" hidden></p>
+    <div id="adminTalleres" class="admin-lista"></div>
   </dialog>
 
   <div id="toastRegion" class="toast-region" aria-live="polite" aria-relevant="additions"></div>
