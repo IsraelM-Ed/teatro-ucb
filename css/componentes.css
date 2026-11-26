@@ -665,7 +665,12 @@ input:invalid:not(:placeholder-shown) {
 
 @media (max-width: 520px) {
     .mapa {
+        width: 100%;
         padding-inline: 0.1rem;
+    }
+
+    .vista-butaca-zona {
+        width: 100%;
     }
 
     .sala {
@@ -673,7 +678,29 @@ input:invalid:not(:placeholder-shown) {
     }
 
     .fila {
-        gap: 8px;
+        gap: 4px;
+    }
+
+    .fila span {
+        width: 0.9rem;
+        flex-basis: 0.9rem;
+        font-size: 0.8rem;
+    }
+
+    .mapa-asientos {
+        gap: 6px;
+    }
+
+    .asiento {
+        width: clamp(20px, 6vw, 26px);
+        height: clamp(22px, 6.4vw, 28px);
+        border-width: 1.5px;
+        border-radius: 6px 6px 3px 3px;
+        font-size: 0.62rem;
+    }
+
+    .asiento[data-pasillo="despues"] {
+        margin-right: 0.4rem;
     }
 }
 

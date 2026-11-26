@@ -7,6 +7,8 @@ import {
     toggleSeat
 } from './reservation-store.js';
 
+const esTactil = window.matchMedia('(hover: none)').matches;
+
 function SeatMap() {
     const [state, setState] = useState(getReservationState);
     const [previewSeat, setPreviewSeat] = useState(null);
@@ -57,7 +59,10 @@ function SeatMap() {
                                         onMouseLeave={() => setPreviewSeat(null)}
                                         onFocus={() => setPreviewSeat({ code, row: rowIndex, column: seatIndex })}
                                         onBlur={() => setPreviewSeat(null)}
-                                        onClick={() => toggleSeat(code)}
+                                        onClick={() => {
+                                            toggleSeat(code);
+                                            setPreviewSeat({ code, row: rowIndex, column: seatIndex });
+                                        }}
                                     >
                                         {isOccupied ? '×' : code.slice(1)}
                                     </button>
@@ -81,8 +86,7 @@ function SeatMap() {
                         <small>Representación orientativa, no fotografía real.</small>
                     </aside>
                 ) : (
-                    <p className="vista-butaca-ayuda">Pasa el cursor por una butaca para ver una vista aproximada.</p>
-                )}
+                    <p className="vista-butaca-ayuda">{esTactil ? 'Toca' : 'Pasa el cursor por'} una butaca para ver una vista aproximada.</p>                )}
             </div>
         </div>
     );
