@@ -1,91 +1,91 @@
-# Teatro UCB
+<p align="center"><img src="public/assets/portada_figma.PNG" alt="Teatro UCB — Taller de Teatro de la Universidad Católica Boliviana" width="100%"></p>
+<p align="center"><strong>Elige tu función, tu butaca y vive el teatro.</strong></p>
+<p align="center">El sitio del Taller de Teatro de la UCB: cartelera, reservas con mapa de butacas, entradas con QR y un panel de administración propio.</p>
+<p align="center"><a href="https://israelm-ed.github.io/teatro-ucb/">Explorar sitio</a> · <a href="#requisitos-e-instalación">Instalación</a> · <a href="#02--diseño-y-documentación">Diseño y documentación</a></p>
+<p align="center"><img alt="Vite 7" src="https://img.shields.io/badge/Vite-7-800020?style=flat-square"> <img alt="Vue · React · Angular" src="https://img.shields.io/badge/Vue%20·%20React%20·%20Angular-reservas-D4AF37?style=flat-square"> <img alt="Supabase" src="https://img.shields.io/badge/Supabase-Auth%20·%20Postgres%20·%20Realtime-1F1F1F?style=flat-square"></p>
 
-Sitio web del Taller de Teatro de la Universidad Católica Boliviana San Pablo,
-sede La Paz. Permite consultar la cartelera, reservar butacas, revisar obras
-pasadas, conocer al elenco e inscribirse a talleres.
+## 01 — La experiencia
 
-## Tecnologías
+El Taller de Teatro de la UCB necesitaba un lugar para mostrar su temporada y gestionar las entradas sin papel. El público consulta la cartelera, conoce al elenco, elige su butaca viendo cómo se verá el escenario desde ella y recibe sus entradas con código QR. El equipo del taller administra obras, funciones, talleres y elenco desde un panel propio.
 
-- Vite para desarrollo y compilación multipágina.
-- Vue para elegir función, React para el mapa de butacas y Angular para el
-  resumen de la reserva. Los tres se cargan bajo demanda al acercarse a la
-  sección de reservas y comparten estado mediante un módulo y eventos DOM.
-- Supabase Auth, Postgres, RPC, RLS y Realtime para autenticación, cartelera,
-  permisos administrativos y reservas.
-- Leaflet para el mapa de ubicación; Day.js, Chart.js, GSAP y AOS para fechas,
-  estadísticas y presentación visual.
+![Página de inicio de Teatro UCB](public/assets/readme/inicio.webp)
 
-## Requisitos
+| Funcionalidad | Descripción |
+|---|---|
+| Cartelera | Obra destacada con sinopsis, horarios, tráiler y su elenco |
+| Reservas | Mapa de butacas con vista del escenario y disponibilidad en tiempo real |
+| Pago y entradas | Bloqueo de butacas por cinco minutos, QR de pago de demostración y entradas con QR |
+| Elenco | Integrantes por paralelo: oficial, juveniles y aspirantes |
+| Talleres | Catálogo e inscripción con correo institucional |
+| Panel de administración | Resumen de actividad, gestión de contenido y reporte PDF |
 
-- Node.js 20.19+ o 22.12+ y npm.
-- Un proyecto Supabase para autenticación, reservas y herramientas de
-  administración.
+## 02 — Diseño y documentación
 
-## Instalación y desarrollo
+| Recurso | Enlace |
+|---|---|
+| Perfil del proyecto | *(Pendiente: enlace al PDF del perfil del proyecto)* |
+| Design System, Lo-Fi y Hi-Fi | *(Pendiente: enlace al prototipo de Figma)* |
+| Diagramas | *(Pendiente: enlace a los diagramas del sistema)* |
+| Esquema de la base de datos | [schema.sql](teatro-ucb-supabase/supabase/schema.sql) |
+| Migraciones de Supabase | [Carpeta migrations](teatro-ucb-supabase/supabase/migrations) |
 
-```bash
-npm install
-npm run dev
+<details><summary>Ver diseño y prototipos</summary>
+
+<img src="public/assets/readme/diseno.webp" alt="Design System de Teatro UCB" width="48%"> <img src="public/assets/readme/prototipo.webp" alt="Prototipo Hi-Fi de Teatro UCB" width="48%">
+
+</details>
+
+
+## 03 — Arquitectura
+
+```mermaid
+flowchart LR
+ U[Público / Administrador] --> F[HTML · CSS · JavaScript · Vite]
+ F --> R[Reservas: Vue · React · Angular]
+ F --> S[(Supabase: Auth · Postgres · RLS · Realtime · Storage)]
+ F -. sin conexión .-> L[Datos locales: obras.json · elenco.json]
+ S --> E[Edge Function · Resend]
 ```
 
-En `.env` configura las variables públicas de Vite:
+Es un sitio multipágina construido con Vite. En la sección de reservas conviven tres frameworks: Vue elige la función, React dibuja el mapa de butacas y Angular muestra el resumen. Se cargan bajo demanda y comparten estado mediante un módulo común y eventos DOM. Supabase se encarga de la autenticación, la base de datos con RLS, las RPC, las actualizaciones en tiempo real, el almacenamiento de imágenes y el correo de confirmación (Edge Function con Resend). Si Supabase no está configurado o no responde, la cartelera y el elenco se muestran con los datos locales; el inicio de sesión, las reservas y el panel requieren Supabase.
 
-```dotenv
-VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
-VITE_SUPABASE_ANON_KEY=tu-clave-anon
-```
+## 04 — Guía técnica
 
-La clave `anon`/publishable está diseñada para el cliente y debe estar protegida
-por RLS. Nunca pongas una clave `service_role` en el frontend ni en variables
-`VITE_*`.
+### Requisitos e instalación
 
-## Supabase
+Node.js **20.19+ o 22.12+** y npm, y un proyecto de Supabase.
 
-En una base nueva, ejecuta `teatro-ucb-supabase/supabase/schema.sql` y después
-las migraciones, en orden, desde **Supabase → SQL Editor**:
+1. Crea un archivo `.env` en la raíz:
+   ```dotenv
+   VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
+   VITE_SUPABASE_ANON_KEY=tu-clave-anon
+   ```
+2. Instala y ejecuta:
+   ```bash
+   npm install
+   npm run dev
+   ```
+3. Abre la dirección que muestra la terminal (normalmente http://localhost:5173).
 
-1. `teatro-ucb-supabase/supabase/migrations/20261118163500_expand_theater_schema.sql`
-2. `teatro-ucb-supabase/supabase/migrations/20261125170000_admin_theater.sql`
-3. `teatro-ucb-supabase/supabase/migrations/20261125190000_reservations_admin_security.sql`
-4. `teatro-ucb-supabase/supabase/migrations/20261125192100_work_images_required.sql`
-5. `teatro-ucb-supabase/supabase/migrations/20261125202000_admin_workshops.sql`
-6. `teatro-ucb-supabase/supabase/migrations/20261125214000_reservation_holds_and_simulated_qr.sql`
-7. `teatro-ucb-supabase/supabase/migrations/20261125230000_user_reservation_access.sql`
-8. `teatro-ucb-supabase/supabase/migrations/20261126120000_elenco.sql`
+| Comando | Qué hace |
+|---|---|
+| `npm run dev` | Servidor de desarrollo con recarga al guardar |
+| `npm run build` | Genera los archivos de publicación en `dist/` (la carpeta no se versiona) |
+| `npm run preview` | Sirve localmente la versión compilada |
 
-La migración administrativa protege las operaciones con RLS y asigna el rol
-inicial a `israelmujia5@gmail.com` si la cuenta ya existe o cuando se registra.
-La migración de seguridad de reservas reemplaza el acceso público a las filas
-privadas por la RPC de disponibilidad, conserva las cancelaciones como historial,
-habilita sincronización Realtime y agrega tokens QR. También permite al
-administrador principal retirar roles delegados.
-La migración de imágenes crea el bucket público `obras-portadas`, limitado a
-archivos JPG, PNG o WebP de hasta 5 MB; solo administradores pueden subirlos.
-Cada obra nueva requiere una imagen, que se usa como portada y fondo.
-La migración de talleres habilita las altas y ediciones protegidas por RLS,
-añade los campos de instructor y tráiler, y crea `talleres-portadas` para las
-imágenes de los cursos.
-La migración de reservas exige iniciar sesión para bloquear butacas por cinco
-minutos, guarda el pago simulado de forma transaccional y mantiene las reservas
-confirmadas para el historial. El QR de pago es demostrativo: no mueve dinero.
-La migración del elenco crea `miembros_elenco` (integrantes con su paralelo:
-oficial, juveniles o aspirantes) y `elenco_obras` (quién participa en cada obra
-y con qué personaje). La lectura es pública y solo los administradores pueden
-modificarlas. También crea el bucket público `elenco` para las fotos de perfil,
-limitado a JPG, PNG o WebP de hasta 2 MB. Al eliminar un integrante se quita de
-todas las obras en las que participaba.
-La migración de acceso a reservas garantiza que los usuarios autenticados puedan
-consultar sus propias entradas mediante RLS; los administradores conservan
-acceso administrativo.
-Las migraciones SQL deben aplicarse en el proyecto Supabase de despliegue; no se
-ejecutan automáticamente desde este repositorio.
+**Base de datos.** En un proyecto nuevo de Supabase, ejecuta `teatro-ucb-supabase/supabase/schema.sql` y después las migraciones en orden desde **SQL Editor**. No se aplican automáticamente.
 
-### Correo de confirmación
+| # | Migración | Qué agrega |
+|---|---|---|
+| 1 | `20261118163500_expand_theater_schema.sql` | Tablas de obras, salas, funciones, butacas, órdenes, talleres, inscripciones y convocatorias, y la RPC `butacas_ocupadas` |
+| 2 | `20261125170000_admin_theater.sql` | Rol de administrador con RLS y asignación del administrador inicial |
+| 3 | `20261125190000_reservations_admin_security.sql` | Disponibilidad por RPC, historial de cancelaciones, Realtime y tokens QR |
+| 4 | `20261125192100_work_images_required.sql` | Bucket `obras-portadas` (JPG, PNG o WebP de hasta 5 MB) |
+| 5 | `20261125202000_admin_workshops.sql` | Gestión de talleres y bucket `talleres-portadas` |
+| 6 | `20261125214000_reservation_holds_and_simulated_qr.sql` | Bloqueo de butacas por cinco minutos y pago QR simulado (no mueve dinero) |
+| 7 | `20261126120000_elenco.sql` | Tablas `miembros_elenco` y `elenco_obras` y bucket `elenco` (fotos de hasta 2 MB) |
 
-El correo se envía desde una Supabase Edge Function usando Resend. Verifica un
-dominio y un remitente en Resend, vincula este repositorio con Supabase CLI y
-configura los secretos en el proyecto (no los pongas en `.env` del frontend ni
-en variables `VITE_*`):
+**Correo de confirmación.** Se envía desde una Supabase Edge Function con Resend. Verifica un dominio en Resend y configura los secretos en Supabase:
 
 ```bash
 cd teatro-ucb-supabase
@@ -95,67 +95,72 @@ supabase secrets set RESEND_API_KEY=re_... RESEND_FROM="Teatro UCB <entradas@tu-
 supabase functions deploy send-reservation-confirmation
 ```
 
-La función usa `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` proporcionados por
-Supabase. Los comandos se ejecutan desde `teatro-ucb-supabase`, donde están la
-configuración de Supabase y la Edge Function. Despliega la función después de
-aplicar la migración anterior. Si el correo falla, la reserva confirmada se
-conserva y el usuario puede reintentar el envío desde la pantalla.
+Si el correo falla, la reserva se conserva y el usuario puede reintentar el envío.
 
-## Funcionalidades
+### Funcionalidades
 
-- Cartelera con horarios, tráileres disponibles y selección de obra.
-- Reservas de butacas y sección de entradas para usuarios autenticados.
-- Bloqueos de cinco minutos por usuario, QR de pago de demostración con
-  confirmación simulada y correo con los QR individuales de entrada.
-- Entradas digitales QR con identificador aleatorio, descarga y cancelación de
-  reservas conservando su historial.
-- Vista esquemática de butaca y disponibilidad en tiempo real (la tabla
-  `disponibilidad_butacas` representa cada butaca ocupada por función; la
-  matriz A-F se actualiza al recibir cambios de Supabase Realtime. La tabla debe
-  estar incluida en la publicación `supabase_realtime`; si la conexión Realtime
-  falla, el mapa consulta la disponibilidad cada cinco segundos hasta reconectar.
-- Catálogo de obras pasadas e inscripciones a talleres.
-- Página de elenco en `elenco.html`, con pestañas por paralelo (oficial,
-  juveniles y aspirantes), foto o iniciales de cada integrante y las obras en
-  las que participa. La obra destacada de la cartelera muestra su elenco con
-  nombre, foto y personaje. Sin Supabase configurado se usan los datos de
-  ejemplo de `data/elenco.json`.
-- Panel administrativo independiente en `admin.html`, con altas y edición de
-  obras, funciones y talleres, permisos, un resumen de actividad y reportes.
-  Desde «Gestionar elenco» se agregan integrantes con foto, se cambian de
-  paralelo o se eliminan; desde «Gestionar obras» se asigna el elenco de cada
-  obra con su personaje o rol.
-- Pie de página compartido (`<teatro-footer>`) con navegación, contacto y redes
-  sociales, presente en todas las páginas públicas.
-- Selección de butacas animada, notificaciones toast y placeholders skeleton
-  durante las cargas.
-- GitHub Pages se configura con la acción del repositorio. `npm run build`
-  genera los archivos de publicación en `dist/`; la carpeta generada no se
-  versiona.
+| Requisito | Implementación |
+|---|---|
+| RF-01 Cartelera | Lista navegable con flechas ← → y obra destacada con elenco (`js/main.js`) |
+| RF-02 Reservas | Selector de función en Vue, mapa en React y resumen en Angular (`src/`); vista del escenario al pasar el mouse o tocar una butaca |
+| RF-03 Bloqueo y pago | Bloqueo por cinco minutos y pago QR simulado mediante RPC (`js/supabase.js`) |
+| RF-04 Tiempo real | Supabase Realtime sobre `disponibilidad_butacas`; si se pierde la conexión, consulta cada cinco segundos |
+| RF-05 Mis entradas | QR con identificador aleatorio, descarga y cancelación con historial (`js/mis-entradas.js`) |
+| RF-06 Obras pasadas | Galería con reseñas, estadísticas y gráfico con Chart.js |
+| RF-07 Elenco | `elenco.html` con pestañas por paralelo; `elenco.html#juveniles` abre un paralelo directamente (`js/elenco.js`) |
+| RF-08 Talleres | Inscripción con validación de correo `@ucb.edu.bo` (`js/talleres.js`) |
+| RF-09 Cuentas | Registro, inicio y cierre de sesión con Supabase Auth (`login.html`, `registro.html`) |
+| RF-10 Administración | `admin.html`: resumen, obras, funciones, talleres, elenco con fotos, administradores y reporte PDF (`js/administracion.js`) |
+| Interfaz | Cabecera y pie como custom elements, redes en `js/redes.js`, toasts, skeletons, diseño responsivo y `prefers-reduced-motion` |
 
-## Compilación local
+### Estructura
 
-```bash
-npm run build
-npm run preview
+```text
+index.html, elenco.html, login.html, registro.html, admin.html
+css/       variables, base, layout, componentes, auth, admin, styles (@import)
+js/        main.js, navigation.js, footer.js, redes.js, supabase.js, mis-entradas.js,
+           talleres.js, elenco.js, elenco-datos.js, administracion.js, auth.js, toasts.js
+src/       FunctionSelector.vue, SeatMap.jsx, ReservationSummary.js, reservation-store.js, main.js
+data/      obras.json, elenco.json
+public/    assets/ (imágenes del sitio y del README), favicon e íconos
+teatro-ucb-supabase/supabase/
+           schema.sql, migrations/, functions/send-reservation-confirmation/
+.github/workflows/deploy.yml
 ```
 
-## Publicación en GitHub Pages
+### Configuración y seguridad
 
-Configura `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` como secretos de GitHub
-Actions y ejecuta el workflow de Pages. La configuración de Vite toma el nombre
-del repositorio para construir las rutas del sitio.
+- El navegador solo usa `VITE_SUPABASE_URL` y la clave `anon`/publishable, protegidas por RLS. Nunca se usa una clave `service_role` en el frontend ni en variables `VITE_*`; los secretos del correo viven en Supabase.
+- Solo los administradores pueden crear, editar o eliminar contenido. La disponibilidad de butacas se consulta por RPC, sin exponer reservas ajenas.
+- Una butaca no puede reservarse dos veces en la misma función, y los bloqueos exigen iniciar sesión.
+- Los buckets solo aceptan JPG, PNG o WebP con tamaño limitado, y los textos de la base se escapan antes de mostrarse.
 
-## Publicación en Vercel
+### RPC de Supabase
 
-En Vercel, abre el proyecto y ve a **Settings → Environment Variables**. Añade
-`VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` con los valores del proyecto
-Supabase y habilítalos para los entornos que uses (Production y Preview). Guarda
-los cambios y vuelve a desplegar: Vite incorpora estas variables durante la
-compilación. Usa `dist` como directorio de salida si Vercel no lo detecta
-automáticamente. No configures la clave `service_role` en el frontend.
+| RPC | Descripción |
+|---|---|
+| `butacas_ocupadas(p_funcion_id)` | Butacas ocupadas de una función |
+| `actualizar_bloqueo_butacas(p_funcion_id, p_butacas)` | Bloquea las butacas elegidas por cinco minutos |
+| `mis_bloqueos_butacas(p_funcion_id)` | Butacas bloqueadas por el usuario |
+| `confirmar_pago_qr_simulado(p_funcion_id, p_butacas, p_referencia)` | Confirma el pago simulado y crea las reservas |
+| `cancelar_mis_reservas(p_reserva_id)` | Cancela una reserva propia |
+| `es_administrador()` | Indica si el usuario es administrador |
+| `crear_obra_con_funcion(...)`, `retirar_obra(p_obra_id)` | **Admin.** Alta y retiro de obras |
+| `agregar_administrador(p_email)`, `quitar_administrador(p_email)` | **Admin.** Gestión de administradores |
 
-Los enlaces a redes sociales (YouTube, TikTok e Instagram) se configuran en
-`js/redes.js` y se muestran como íconos SVG en la cabecera y en el pie de
-página; una red sin URL no se muestra. Los reportes y operaciones administrativas
-dependen de que las migraciones SQL requeridas estén aplicadas en Supabase.
+## Despliegue
+
+- **GitHub Pages:** [israelm-ed.github.io/teatro-ucb](https://israelm-ed.github.io/teatro-ucb/). Se publica automáticamente con cada push a `main` mediante GitHub Actions (`.github/workflows/deploy.yml`), con `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` como secretos del repositorio. Vite toma el nombre del repositorio para construir las rutas del sitio.
+- **Vercel:** *(Pendiente: URL del sitio en Vercel)*. Conectado al mismo repositorio, con las mismas variables de entorno y su URL registrada en **Supabase → Authentication → URL Configuration**.
+
+Las migraciones SQL y la Edge Function se aplican por separado en Supabase; el despliegue del sitio no las ejecuta.
+
+
+## 05 — Proyecto académico
+
+Tecnologías Web I · Universidad Católica Boliviana "San Pablo", sede La Paz · *(Pendiente: periodo académico)*.
+
+**Integrantes:** *(Pendiente: nombres completos de los integrantes del equipo)* · [Historial de contribuciones](https://github.com/IsraelM-Ed/teatro-ucb/graphs/contributors)
+
+El proyecto utiliza imágenes y videos de terceros; sus derechos corresponden a sus respectivos titulares.
+
