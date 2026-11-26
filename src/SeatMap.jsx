@@ -1,26 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import {
-    getReservationState,
-    getSeatRows,
-    RESERVATION_EVENT,
-    toggleSeat
-} from './reservation-store.js';
+import { getSeatRows, toggleSeat } from './reservation-store.js';
+import { useReservationState } from './useReservationState.js';
 
 const esTactil = window.matchMedia('(hover: none)').matches;
 
 function SeatMap() {
-    const [state, setState] = useState(getReservationState);
+    const state = useReservationState();
     const [previewSeat, setPreviewSeat] = useState(null);
     const rows = getSeatRows();
     const occupied = new Set(state.occupiedSeats);
     const selected = new Set(state.selectedSeats);
-
-    useEffect(() => {
-        const update = event => setState(event.detail);
-        document.addEventListener(RESERVATION_EVENT, update);
-        return () => document.removeEventListener(RESERVATION_EVENT, update);
-    }, []);
 
     return (
         <div className="mapa-contenido" role="group" aria-label="Mapa de butacas" aria-busy={state.loading}>

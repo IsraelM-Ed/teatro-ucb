@@ -71,6 +71,12 @@ export function getReservationState() {
     };
 }
 
+export function subscribeReservationState(listener) {
+    const handleUpdate = event => listener(event.detail);
+    document.addEventListener(RESERVATION_EVENT, handleUpdate);
+    return () => document.removeEventListener(RESERVATION_EVENT, handleUpdate);
+}
+
 function publish() {
     if (message && message !== lastNotifiedMessage) {
         mostrarToast(message, messageType || 'info');
