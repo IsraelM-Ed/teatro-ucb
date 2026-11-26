@@ -35,6 +35,62 @@ function parseLaPazDate(value: string) {
     return date;
 }
 
+function base64Encode(value: string | Uint8Array) {
+    const bytes = typeof value === 'string' ? new TextEncoder().encode(value) : value;
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+    }
+    return btoa(binary);
+}
+
+function wrapBase64(value: string) {
+    return value.match(/.{1,76}/g)?.join('\r\n') ?? '';
+}
+
+type InlineAttachment = {
+    filename: string;
+    content: string;
+    contentId: string;
+};
+
+function buildRawEmail(recipient: string, sender: string, subject: string, html: string, attachments: InlineAttachment[]) {
+    const boundary = `teatro-ucb-${crypto.randomUUID()}`;
+    const parts = [
+        `From: Teatro UCB <${sender}>`,
+        `To: ${recipient}`,
+        `Subject: =?UTF-8?B?${base64Encode(subject)}?=`,
+        `Date: ${new Date().toUTCString()}`,
+        'MIME-Version: 1.0',
+        `Content-Type: multipart/related; boundary="${boundary}"`,
+        '',
+        `--${boundary}`,
+        'Content-Type: text/html; charset="UTF-8"',
+        'Content-Transfer-Encoding: base64',
+        '',
+        wrapBase64(base64Encode(html))
+    ];
+
+    for (const attachment of attachments) {
+        parts.push(
+            `--${boundary}`,
+            'Content-Type: image/png',
+            'Content-Transfer-Encoding: base64',
+            `Content-Disposition: inline; filename="${attachment.filename}"`,
+            `Content-ID: <${attachment.contentId}>`,
+            '',
+            wrapBase64(attachment.content)
+        );
+    }
+
+    parts.push(`--${boundary}--`, '');
+    return base64Encode(parts.join('\r\n'))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+}
+
 Deno.serve(async request => {
     if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
     if (request.method !== 'POST') return jsonResponse({ error: 'Método no permitido.' }, 405);
@@ -46,11 +102,17 @@ Deno.serve(async request => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    const resendFrom = Deno.env.get('RESEND_FROM');
-    if (!supabaseUrl || !serviceRoleKey || !resendApiKey || !resendFrom) {
-        console.error('Falta configurar Supabase o Resend en los secretos de la función.');
+    const gmailClientId = Deno.env.get('GMAIL_CLIENT_ID');
+    const gmailClientSecret = Deno.env.get('GMAIL_CLIENT_SECRET');
+    const gmailRefreshToken = Deno.env.get('GMAIL_REFRESH_TOKEN');
+    const gmailSender = Deno.env.get('GMAIL_SENDER')?.trim();
+    if (!supabaseUrl || !serviceRoleKey || !gmailClientId || !gmailClientSecret || !gmailRefreshToken || !gmailSender) {
+        console.error('Falta configurar Supabase o las credenciales OAuth de Gmail en los secretos de la función.');
         return jsonResponse({ error: 'El servicio de correo no está configurado.' }, 503);
+    }
+    if (!/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(gmailSender)) {
+        console.error('GMAIL_SENDER no tiene un formato de correo válido.');
+        return jsonResponse({ error: 'El remitente de Gmail no está configurado correctamente.' }, 503);
     }
 
     const serviceClient = createClient(supabaseUrl, serviceRoleKey, {
@@ -139,7 +201,7 @@ Deno.serve(async request => {
         }).format(parseLaPazDate(funcion.inicio));
         const safeTitle = escapeHtml(obra.titulo);
         const safeDate = escapeHtml(formattedDate);
-        const attachments = [];
+        const attachments: InlineAttachment[] = [];
         const ticketRows = [];
 
         for (const reservation of reservations) {
@@ -153,7 +215,7 @@ Deno.serve(async request => {
             attachments.push({
                 filename: `entrada-${reservation.butaca}.png`,
                 content: qrDataUrl.split(',')[1],
-                content_id: contentId
+                contentId
             });
             ticketRows.push(`
                 <li style="margin: 0 0 24px;">
@@ -164,33 +226,59 @@ Deno.serve(async request => {
             `);
         }
 
-        const emailResponse = await fetch('https://api.resend.com/emails', {
+        const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                client_id: gmailClientId,
+                client_secret: gmailClientSecret,
+                refresh_token: gmailRefreshToken,
+                grant_type: 'refresh_token'
+            })
+        });
+        const tokenText = await tokenResponse.text();
+        let tokenData: { access_token?: string; error?: string; error_description?: string } = {};
+        try {
+            tokenData = JSON.parse(tokenText);
+        } catch {
+            console.error('Google devolvió una respuesta de autorización inválida.', tokenResponse.status);
+            return jsonResponse({ error: 'No se pudo autorizar el envío mediante Gmail.' }, 502);
+        }
+        if (!tokenResponse.ok || !tokenData.access_token) {
+            console.error('Google rechazó la autorización OAuth de Gmail.', tokenResponse.status, tokenData.error);
+            return jsonResponse({ error: 'No se pudo autorizar el envío mediante Gmail. Revisa las credenciales OAuth.' }, 502);
+        }
+
+        const html = `
+            <div style="font-family: Arial, sans-serif; color: #171112; line-height: 1.5;">
+                <h1>Tu reserva en Teatro UCB está confirmada</h1>
+                <p><strong>Obra:</strong> ${safeTitle}</p>
+                <p><strong>Función:</strong> ${safeDate}</p>
+                <p>Presenta el código QR correspondiente a cada butaca al ingresar.</p>
+                <ul style="padding-left: 20px;">${ticketRows.join('')}</ul>
+                <p>Este correo confirma una compra de demostración; el sitio no procesó un cobro real.</p>
+            </div>
+        `;
+        const raw = buildRawEmail(
+            user.email,
+            gmailSender,
+            `Entradas confirmadas: ${obra.titulo}`,
+            html,
+            attachments
+        );
+        const emailResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
             method: 'POST',
             headers: {
-                Authorization: `Bearer ${resendApiKey}`,
+                Authorization: `Bearer ${tokenData.access_token}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                from: resendFrom,
-                to: [user.email],
-                subject: `Entradas confirmadas: ${obra.titulo}`,
-                html: `
-                    <div style="font-family: Arial, sans-serif; color: #171112; line-height: 1.5;">
-                        <h1>Tu reserva en Teatro UCB está confirmada</h1>
-                        <p><strong>Obra:</strong> ${safeTitle}</p>
-                        <p><strong>Función:</strong> ${safeDate}</p>
-                        <p>Presenta el código QR correspondiente a cada butaca al ingresar.</p>
-                        <ul style="padding-left: 20px;">${ticketRows.join('')}</ul>
-                        <p>Este correo confirma una compra de demostración; el sitio no procesó un cobro real.</p>
-                    </div>
-                `,
-                attachments
-            })
+            body: JSON.stringify({ raw })
         });
 
         if (!emailResponse.ok) {
-            console.error('Resend rechazó el correo de confirmación.', emailResponse.status);
-            return jsonResponse({ error: 'El proveedor de correo no aceptó el mensaje.' }, 502);
+            const details = await emailResponse.text();
+            console.error('Gmail API rechazó el correo de confirmación.', emailResponse.status, details.slice(0, 500));
+            return jsonResponse({ error: `Gmail no aceptó el correo (HTTP ${emailResponse.status}).` }, 502);
         }
 
         return jsonResponse({ sent: true });

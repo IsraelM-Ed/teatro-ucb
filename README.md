@@ -86,16 +86,37 @@ Node.js **20.19+ o 22.12+** y npm, y un proyecto de Supabase.
 | 7 | `20261126120000_elenco.sql` | Tablas `miembros_elenco` y `elenco_obras` y bucket `elenco` (fotos de hasta 2 MB) |
 
 **Correo de confirmación.** Se envía desde una Supabase Edge Function con Resend. Verifica un dominio en Resend y configura los secretos en Supabase:
+El correo se envía desde una Supabase Edge Function usando Gmail API. La cuenta
+Gmail que autoriza OAuth será el remitente; el destinatario sigue siendo el
+correo de la cuenta autenticada. Nunca pongas credenciales OAuth en el frontend,
+en `.env` público ni en variables `VITE_*`.
+
+1. En Google Cloud Console, habilita Gmail API, configura la pantalla de
+   consentimiento OAuth y añade la cuenta remitente como usuario de prueba.
+2. Crea un cliente OAuth de tipo aplicación web y agrega
+   `https://developers.google.com/oauthplayground` como URI de redirección.
+3. En OAuth 2.0 Playground, abre la configuración, activa **Use your own OAuth
+   credentials** y coloca el ID y secreto del cliente. Autoriza el alcance
+   `https://www.googleapis.com/auth/gmail.send`, intercambia el código y copia
+   el refresh token.
+4. Vincula el proyecto Supabase y guarda las credenciales como secretos:
 
 ```bash
 cd teatro-ucb-supabase
 supabase login
 supabase link --project-ref TU_PROJECT_REF
-supabase secrets set RESEND_API_KEY=re_... RESEND_FROM="Teatro UCB <entradas@tu-dominio-verificado>"
+supabase secrets set GMAIL_CLIENT_ID="..." GMAIL_CLIENT_SECRET="..." GMAIL_REFRESH_TOKEN="..." GMAIL_SENDER="tu-cuenta@gmail.com"
 supabase functions deploy send-reservation-confirmation
 ```
 
 Si el correo falla, la reserva se conserva y el usuario puede reintentar el envío.
+`GMAIL_SENDER` debe coincidir con la cuenta que concedió OAuth o con un alias de
+envío configurado en Gmail. Supabase proporciona `SUPABASE_URL` y
+`SUPABASE_SERVICE_ROLE_KEY` a la función. En modo de prueba de Google, los
+refresh tokens pueden caducar a los siete días; para uso continuo, revisa los
+requisitos de publicación y verificación de Google para el alcance `gmail.send`.
+Si el correo falla, la reserva confirmada se conserva y el usuario puede
+reintentar el envío desde la pantalla.
 
 ### Funcionalidades
 
