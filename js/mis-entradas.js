@@ -14,6 +14,36 @@ let requestId = 0;
 let reservasActuales = new Map();
 let funcionesActuales = new Map();
 
+async function cargarFuncionesReservadas(reservas) {
+    const functionIds = [...new Set(reservas.map(reserva => String(reserva.funcion_id)))];
+    if (functionIds.length === 0) return new Map();
+
+    const { data: funciones, error: funcionesError } = await supabase
+        .from('funciones')
+        .select('id, obra_id, inicio, salida')
+        .in('id', functionIds);
+    if (funcionesError) throw funcionesError;
+
+    const workIds = [...new Set(funciones.map(funcion => funcion.obra_id))];
+    const { data: obras, error: obrasError } = workIds.length
+        ? await supabase.from('obras').select('id, titulo').in('id', workIds)
+        : { data: [], error: null };
+    if (obrasError) throw obrasError;
+
+    const obrasPorId = new Map(obras.map(obra => [obra.id, obra]));
+    return new Map(funciones.map(funcion => {
+        const obra = obrasPorId.get(funcion.obra_id);
+        return [String(funcion.id), {
+            obra: obra ?? { titulo: 'Función de teatro' },
+            funcion: {
+                id: funcion.id,
+                fecha: funcion.inicio,
+                salida: funcion.salida
+            }
+        }];
+    }));
+}
+
 function mostrarEstado(texto, tipo = 'status') {
     const mensaje = document.createElement('p');
     mensaje.className = 'estado-entradas';
@@ -42,14 +72,14 @@ async function cargarReservas() {
             return;
         }
 
-        const funciones = (window.TEATRO?.obras ?? [])
-            .flatMap(obra => obra.funciones.map(funcion => [funcion.id, { obra, funcion }]));
-        funcionesActuales = new Map(funciones);
+        funcionesActuales = await cargarFuncionesReservadas(reservas);
+        if (request !== requestId) return;
         const ahora = Date.now();
         const entradasFuturas = reservas.filter(reserva => {
-            const datosFuncion = funcionesActuales.get(reserva.funcion_id);
-            return datosFuncion
-                && new Date(datosFuncion.funcion.salida ?? datosFuncion.funcion.fecha).getTime() > ahora;
+            const datosFuncion = funcionesActuales.get(String(reserva.funcion_id));
+            if (!datosFuncion) return true;
+            const fin = new Date(datosFuncion.funcion.salida ?? datosFuncion.funcion.fecha).getTime();
+            return Number.isNaN(fin) || fin > ahora;
         });
         if (entradasFuturas.length === 0) {
             mostrarEstado('No tienes entradas para funciones futuras.');
@@ -59,7 +89,7 @@ async function cargarReservas() {
         reservasActuales = new Map(entradasFuturas.map(reserva => [String(reserva.id), reserva]));
 
         for (const reserva of entradasFuturas) {
-            const datosFuncion = funcionesActuales.get(reserva.funcion_id);
+            const datosFuncion = funcionesActuales.get(String(reserva.funcion_id));
             const tarjeta = document.createElement('article');
             tarjeta.className = 'entrada-card';
 
@@ -76,7 +106,7 @@ async function cargarReservas() {
 
             const fecha = document.createElement('p');
             fecha.className = 'entrada-fecha';
-            fecha.textContent = datosFuncion
+            fecha.textContent = datosFuncion?.funcion.fecha
                 ? dateTimeFormat.format(new Date(datosFuncion.funcion.fecha))
                 : 'Fecha no disponible';
 
@@ -96,7 +126,7 @@ async function cargarReservas() {
                 try {
                     const qr = document.createElement('img');
                     qr.className = 'entrada-qr';
-                    qr.alt = `Código QR de la entrada para ${datosFuncion.obra.titulo}, butaca ${reserva.butaca}`;
+                    qr.alt = `Código QR de la entrada para ${datosFuncion?.obra.titulo ?? 'función de teatro'}, butaca ${reserva.butaca}`;
                     qr.src = await QRCode.toDataURL(reserva.ticket_token, {
                         errorCorrectionLevel: 'H',
                         margin: 1,
@@ -105,12 +135,14 @@ async function cargarReservas() {
                     });
                     tarjeta.append(qr);
 
-                    const download = document.createElement('button');
-                    download.className = 'btn entrada-descargar';
-                    download.type = 'button';
-                    download.dataset.descargarEntrada = String(reserva.id);
-                    download.textContent = 'Descargar entrada';
-                    tarjeta.append(download);
+                    if (datosFuncion?.funcion.fecha) {
+                        const download = document.createElement('button');
+                        download.className = 'btn entrada-descargar';
+                        download.type = 'button';
+                        download.dataset.descargarEntrada = String(reserva.id);
+                        download.textContent = 'Descargar entrada';
+                        tarjeta.append(download);
+                    }
                 } catch (error) {
                     console.error(`No se pudo generar el QR de la reserva ${reserva.id}.`, error);
                     const aviso = document.createElement('p');
@@ -164,7 +196,7 @@ container.addEventListener('click', async event => {
     const downloadButton = event.target.closest('[data-descargar-entrada]');
     if (!downloadButton) return;
     const reserva = reservasActuales.get(downloadButton.dataset.descargarEntrada);
-    const datosFuncion = reserva && funcionesActuales.get(reserva.funcion_id);
+    const datosFuncion = reserva && funcionesActuales.get(String(reserva.funcion_id));
     if (!reserva || !datosFuncion) return;
     downloadButton.disabled = true;
     try {
