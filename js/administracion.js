@@ -1387,7 +1387,7 @@ async function descargarReporte() {
         const obras = obrasResult.data;
         const funciones = funcionesResult.data;
         const reservas = reservasResult.data;
-        const salas = new Map(salasResult.data.map(sala => [sala.id, sala]));
+        const salas = salasResult.data;
         const talleres = talleresResult.data;
         const inscripciones = inscripcionesResult.data;
         const now = new Date();
