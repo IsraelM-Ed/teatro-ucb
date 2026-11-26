@@ -766,12 +766,78 @@ body::after {
 }
 
 .pie {
-    padding: 2rem 5%;
-    text-align: center;
-    color: #b9b0a3;
+    padding: 3.5rem 5% 1.5rem;
+    color: var(--color-suave);
+    background: linear-gradient(180deg, transparent, rgba(128, 0, 32, 0.18));
     border-top: 1px solid #2a2627;
-    font-size: 20px;
-    font-weight: 600;
+}
+
+.pie-contenido {
+    display: grid;
+    grid-template-columns: 1.4fr repeat(3, 1fr);
+    gap: 2.5rem;
+    max-width: var(--ancho);
+    margin: 0 auto;
+}
+
+.pie-logo {
+    width: 180px;
+    height: auto;
+    margin-bottom: 1rem;
+}
+
+.pie-marca p {
+    max-width: 32ch;
+}
+
+.pie h2 {
+    margin-bottom: 1rem;
+    color: var(--color-texto);
+    font-size: 1rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.pie ul {
+    display: grid;
+    gap: 0.5rem;
+    list-style: none;
+}
+
+.pie address {
+    display: grid;
+    gap: 0.5rem;
+    font-style: normal;
+}
+
+.pie ul a,
+.pie address a {
+    color: var(--color-suave);
+    text-decoration: none;
+}
+
+.pie ul a:hover,
+.pie ul a:focus-visible,
+.pie address a:hover,
+.pie address a:focus-visible {
+    color: var(--color-texto);
+    text-decoration: underline;
+}
+
+.pie-redes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.pie-legal {
+    max-width: var(--ancho);
+    margin: 2.5rem auto 0;
+    padding-top: 1.5rem;
+    border-top: 1px solid #2a2627;
+    color: #b9b0a3;
+    font-size: 0.9rem;
+    text-align: center;
 }
 
 .aviso-catalogo {
@@ -967,5 +1033,18 @@ body::after {
 @media (max-width: 700px) {
     .estadisticas-obras {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .pie-contenido {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 520px) {
+    .pie-contenido {
+        grid-template-columns: 1fr;
+        gap: 2rem;
     }
 }
