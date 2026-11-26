@@ -50,6 +50,10 @@ body::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .cabecera {
+        transition: none;
+    }
+
     body::before,
     body::after {
         transition: none;
@@ -69,6 +73,12 @@ body::after {
     background: rgba(0, 0, 0, 0.2);
     font-size: 22px;
     font-weight: 700;
+    transition: transform 220ms ease;
+}
+
+teatro-navigation.oculta-por-scroll .cabecera {
+    transform: translateY(calc(-100% - 1px));
+    pointer-events: none;
 }
 
 .marca {
@@ -288,9 +298,10 @@ body::after {
 }
 
 .mis-entradas-intro {
-    margin: -0.75rem 0 1.5rem;
+    margin: -0.75rem auto 1.5rem;
     color: var(--color-suave);
     font-size: 1.1rem;
+    text-align: center;
 }
 
 .entradas-grid {
@@ -586,7 +597,7 @@ body::after {
 .taller-card {
     flex: 0 0 312px;
     width: 312px;
-    height: 417px;
+    min-height: 417px;
     gap: 0.6rem;
     padding: 17px;
     background: rgba(33, 15, 15, 0.75);

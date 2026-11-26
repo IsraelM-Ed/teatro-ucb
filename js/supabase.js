@@ -74,7 +74,17 @@ export async function cargarElenco() {
   const { data, error } = await getSupabase()
     .from('miembros_elenco')
     .select('id, nombre, categoria, foto_url, elenco_obras(personaje, obras(id, titulo))')
-    .order('nombre');
+        .order('nombre');
+  if (error) throw error;
+  return data;
+}
+
+export async function cargarTalleres() {
+  const { data, error } = await getSupabase()
+    .from('talleres')
+    .select('id, titulo, horario, cupos, descripcion, img, instructor, video_url')
+    .eq('activo', true)
+    .order('id');
   if (error) throw error;
   return data;
 }
@@ -103,7 +113,7 @@ export async function inscribirEnTaller({ taller_id, nombre, email, experiencia 
   }
 }
 
-// ---------- Reservas (reemplazan el localStorage) ----------
+// ---------- Reservas y pago QR simulado ----------
 export async function butacasOcupadas(funcionId) {
   const { data, error } = await getSupabase()
     .rpc('butacas_ocupadas', { p_funcion_id: funcionId });
@@ -111,15 +121,55 @@ export async function butacasOcupadas(funcionId) {
   return data.map(r => r.butaca);
 }
 
-export async function confirmarReserva(funcionId, butacas) {
+export async function misBloqueosButacas(funcionId) {
   const user = await usuarioActual();
-  if (!user) throw new Error('Debes iniciar sesión para reservar.');
-  const filas = butacas.map(b => ({ user_id: user.id, funcion_id: funcionId, butaca: b }));
-  const { error } = await getSupabase().from('reservas').insert(filas);
+  if (!user) return [];
+
+  const { data, error } = await getSupabase()
+    .rpc('mis_bloqueos_butacas', { p_funcion_id: funcionId });
+  if (error) throw error;
+  return data;
+}
+
+export async function actualizarBloqueoButacas(funcionId, butacas) {
+  const { data, error } = await getSupabase()
+    .rpc('actualizar_bloqueo_butacas', {
+      p_funcion_id: funcionId,
+      p_butacas: butacas
+    });
+  if (error) throw error;
+  return data;
+}
+
+export async function confirmarPagoQrSimulado(funcionId, butacas, referencia) {
+  const { data, error } = await getSupabase()
+    .rpc('confirmar_pago_qr_simulado', {
+      p_funcion_id: funcionId,
+      p_butacas: butacas,
+      p_referencia: referencia
+    });
+  if (error) throw error;
+  return data;
+}
+
+export async function enviarCorreoConfirmacion(reservaIds) {
+  const { data, error } = await getSupabase().functions.invoke('send-reservation-confirmation', {
+    body: { reservation_ids: reservaIds.map(String) }
+  });
   if (error) {
-    if (error.code === '23505') throw new Error('Alguna butaca ya fue reservada. Elige otra.');
-    throw error;
+    let message = error.message;
+    if (error.context && typeof error.context.json === 'function') {
+      try {
+        const responseBody = await error.context.json();
+        if (typeof responseBody?.error === 'string') message = responseBody.error;
+      } catch {
+        // Keep the original Functions error if its response body is unavailable.
+      }
+    }
+    throw new Error(message);
   }
+  if (data?.sent !== true) throw new Error('El servicio de correo no confirmó el envío.');
+  return data;
 }
 
 export async function cancelarReserva(reservaId) {

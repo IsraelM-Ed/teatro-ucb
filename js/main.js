@@ -1,5 +1,5 @@
 import datosTeatro from '../data/obras.json';
-import { butacasOcupadas, cargarCatalogoTeatro, cargarElencoDeObras, supabase } from './supabase.js';
+import { butacasOcupadas, cargarCatalogoTeatro, cargarElencoDeObras, cargarTalleres, supabase } from './supabase.js';
 import { avatarElenco, elencoDeObraDesdeBaseDeDatos, elencoDeObraLocal } from './elenco-datos.js';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -23,10 +23,12 @@ const fmtHora = f => dayjs(f).format('HH:mm');
 const assetUrl = path => {
     const imagePath = String(path ?? '');
     if (/^https?:\/\//i.test(imagePath)) return imagePath;
-    if (imagePath.startsWith('obras-portadas/')) {
-        if (!supabase) throw new Error('Se requiere Supabase para cargar la imagen de esta obra.');
-        return supabase.storage.from('obras-portadas')
-            .getPublicUrl(imagePath.slice('obras-portadas/'.length)).data.publicUrl;
+    const bucket = ['obras-portadas', 'talleres-portadas']
+        .find(bucketName => imagePath.startsWith(`${bucketName}/`));
+    if (bucket) {
+        if (!supabase) throw new Error('Se requiere Supabase para cargar imágenes del catálogo.');
+        return supabase.storage.from(bucket)
+            .getPublicUrl(imagePath.slice(`${bucket}/`.length)).data.publicUrl;
     }
     return `${import.meta.env.BASE_URL}${imagePath.replace(/^\.?\//, '')}`;
 };
@@ -236,21 +238,39 @@ function pintarGaleria() {
 }
 
 function pintarTalleres() {
-    document.getElementById('listaTalleres').innerHTML = datos.talleres.map(t => `
+    document.getElementById('listaTalleres').innerHTML = datos.talleres.map(t => {
+        const videoUrl = enlaceYouTube(t.video_url);
+        return `
         <article class="tarjeta taller-card" data-aos="fade-up">
             <div class="taller-imagen">
-                <img src="${escaparHtml(assetUrl(t.img))}" alt="Escena teatral relacionada con ${escaparHtml(t.titulo)}" loading="lazy">
+                <img src="${escaparHtml(assetUrl(t.img || './assets/keke1.png'))}" alt="Escena teatral relacionada con ${escaparHtml(t.titulo)}" loading="lazy">
                 <h3>${escaparHtml(t.titulo)}</h3>
             </div>
             <div class="tarjeta-cuerpo taller-cuerpo">
-                <p class="taller-horario">${escaparHtml(t.dia)}</p>
+                <p class="taller-horario">${escaparHtml(t.horario ?? t.dia)}</p>
+                ${t.instructor ? `<p class="taller-instructor">Con ${escaparHtml(t.instructor)}</p>` : ''}
                 <p class="taller-cupos">${escaparHtml(t.cupos)} cupos disponibles</p>
                 <hr>
                 <p class="taller-descripcion">${escaparHtml(t.descripcion)}</p>
-                <button class="btn" type="button" data-taller="${escaparHtml(t.id)}">Inscribirme</button>
+                <div class="taller-acciones">
+                    ${videoUrl ? `<a class="btn btn-borde taller-video" href="${escaparHtml(videoUrl)}" target="_blank" rel="noopener noreferrer">Ver tráiler</a>` : ''}
+                    <button class="btn" type="button" data-taller="${escaparHtml(t.id)}">Inscribirme</button>
+                </div>
             </div>
         </article>
-    `).join('');
+    `;
+    }).join('');
+}
+
+function enlaceYouTube(value) {
+    if (!value) return '';
+    try {
+        const url = new URL(value);
+        if (!['http:', 'https:'].includes(url.protocol) || !getYouTubeVideoId(url)) return '';
+        return url.href;
+    } catch {
+        return '';
+    }
 }
 
 function cuentaRegresiva() {
@@ -555,6 +575,27 @@ async function inicializarTeatro() {
 
         } catch (error) {
             mostrarErrorCatalogo(error);
+        }
+        try {
+            const talleres = await cargarTalleres();
+            datos.talleres = talleres.map(taller => ({
+                id: taller.id,
+                titulo: taller.titulo,
+                dia: taller.horario,
+                horario: taller.horario,
+                cupos: taller.cupos,
+                descripcion: taller.descripcion,
+                img: taller.img,
+                instructor: taller.instructor,
+                video_url: taller.video_url
+            }));
+        } catch (error) {
+            console.error('No se pudieron sincronizar los talleres; se mostrará el catálogo local.', error);
+            const aviso = document.createElement('p');
+            aviso.className = 'aviso-catalogo';
+            aviso.setAttribute('role', 'status');
+            aviso.textContent = 'No se pudieron sincronizar los talleres. Se muestra la información local.';
+            document.getElementById('talleres').prepend(aviso);
         }
     }
 

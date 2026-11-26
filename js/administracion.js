@@ -11,6 +11,13 @@ const obrasContainer = document.getElementById('adminObras');
 const administradoresContainer = document.getElementById('listaAdministradores');
 const buscarObrasInput = document.getElementById('buscarObras');
 const obrasSinResultados = document.getElementById('adminObrasSinResultados');
+const talleresContainer = document.getElementById('adminTalleres');
+const buscarTalleresInput = document.getElementById('buscarTalleres');
+const talleresSinResultados = document.getElementById('adminTalleresSinResultados');
+const tallerForm = document.getElementById('formTallerAdmin');
+const tallerImagenInput = document.getElementById('adminTallerImagen');
+const tallerImagenPreview = document.getElementById('adminTallerImagenPreview');
+const cancelarEdicionTaller = document.getElementById('cancelarEdicionTaller');
 const imagenInput = document.getElementById('adminImagen');
 const imagenPreview = document.getElementById('adminImagenPreview');
 const metricasDashboard = document.getElementById('adminMetricas');
@@ -27,8 +34,20 @@ const MAX_FOTO = 2 * 1024 * 1024;
 let obrasAdmin = [];
 let elencoAdmin = { disponible: false, miembros: [], participaciones: [] };
 
+const horariosTaller = [
+    'Lunes 15:30',
+    'Lunes 18:30',
+    'Martes 18:30',
+    'Miércoles 18:30',
+    'Jueves 18:30',
+    'Viernes 18:30',
+    'Sábado 10:00',
+    'Sábado 15:00'
+];
 let verificacion = 0;
 let imagenPreviewUrl = null;
+let tallerImagenPreviewUrl = null;
+let talleresAdministrados = [];
 document.getElementById('adminFecha').min = ahoraLocal();
 
 function mostrarEstado(texto, error = false) {
@@ -125,7 +144,7 @@ async function verificarAcceso() {
 
 async function cargarAdministracion() {
     mostrarEstado('Cargando datos administrativos...');
-    const [obrasResult, funcionesResult, adminsResult, user, datosElenco] = await Promise.all([
+    const [obrasResult, funcionesResult, adminsResult, reservasResult, salasResult, talleresResult, inscripcionesTalleresResult, user, datosElenco] = await Promise.all([
         supabase.from('obras')
             .select('id, titulo, director, duracion_minutos, sinopsis, video_url, activa')
             .order('id'),
@@ -133,10 +152,17 @@ async function cargarAdministracion() {
             .select('id, obra_id, sala_id, inicio, salida, estado')
             .order('inicio'),
         supabase.from('administradores').select('email').order('email'),
+        supabase.from('reservas').select('funcion_id, estado'),
+        supabase.from('salas').select('id, capacidad, activa'),
+        supabase.from('talleres')
+            .select('id, titulo, horario, cupos, descripcion, img, activo, instructor, video_url')
+            .order('activo', { ascending: false })
+            .order('titulo'),
+        supabase.from('inscripciones_talleres').select('id, taller_id, estado'),
         usuarioActual(),
         cargarDatosElenco()
     ]);
-    const failed = [obrasResult, funcionesResult, adminsResult, reservasResult, salasResult, talleresResult].find(result => result.error);
+    const failed = [obrasResult, funcionesResult, adminsResult, reservasResult, salasResult, talleresResult, inscripcionesTalleresResult].find(result => result.error);
     if (failed?.error) throw failed.error;
     pintarDashboardAdmin(
         obrasResult.data,
@@ -145,14 +171,13 @@ async function cargarAdministracion() {
         salasResult.data,
         talleresResult.data
     );
-
-    
     obrasAdmin = obrasResult.data;
     elencoAdmin = datosElenco;
     pintarAdminObras(obrasResult.data, funcionesResult.data);
     pintarAdminMiembros();
     
     
+    pintarAdminTalleres(talleresResult.data, inscripcionesTalleresResult.data);
     const principal = user?.email?.toLowerCase() === 'israelmujia5@gmail.com';
     administradoresContainer.replaceChildren(...adminsResult.data.map(admin => {
         const item = crearElemento('li', 'admin-admin-item');
@@ -359,6 +384,78 @@ function pintarAdminObras(obras, funciones) {
     filtrarObrasAdmin();
 }
 
+function pintarAdminTalleres(talleres, inscripciones) {
+    talleresAdministrados = talleres;
+    const inscripcionesPorTaller = new Map();
+    for (const inscripcion of inscripciones) {
+        inscripcionesPorTaller.set(
+            inscripcion.taller_id,
+            (inscripcionesPorTaller.get(inscripcion.taller_id) ?? 0) + 1
+        );
+    }
+
+    const fragment = document.createDocumentFragment();
+    for (const taller of talleres) {
+        const card = crearElemento('details', 'admin-obra admin-taller');
+        card.dataset.busqueda = normalizarTexto(
+            `${taller.titulo} ${taller.instructor ?? ''} ${taller.horario ?? ''}`
+        ).toLocaleLowerCase('es-BO');
+        const summary = crearElemento('summary', 'admin-obra-resumen');
+        summary.append(
+            crearElemento('span', 'admin-obra-titulo', taller.titulo),
+            crearElemento(
+                'span',
+                taller.activo ? 'admin-badge' : 'admin-badge admin-badge-inactivo',
+                taller.activo ? 'Publicado' : 'Retirado'
+            ),
+            crearElemento(
+                'span',
+                'admin-obra-total admin-taller-meta',
+                `${taller.horario} · ${taller.cupos} cupos · ${inscripcionesPorTaller.get(taller.id) ?? 0} inscripciones`
+            )
+        );
+
+        const content = crearElemento('div', 'admin-obra-contenido');
+        content.append(
+            crearElemento('p', 'admin-taller-detalle', `Instructor: ${taller.instructor || 'Sin asignar'}`),
+            crearElemento('p', 'admin-taller-detalle', taller.descripcion || 'Taller de teatro para desarrollar habilidades escénicas.')
+        );
+        const actions = crearElemento('div', 'admin-obra-acciones');
+        const editButton = crearElemento('button', 'btn', 'Editar taller');
+        editButton.type = 'button';
+        editButton.dataset.editarTaller = String(taller.id);
+        const statusButton = crearElemento(
+            'button',
+            taller.activo ? 'btn btn-eliminar' : 'btn',
+            taller.activo ? 'Retirar taller' : 'Reactivar taller'
+        );
+        statusButton.type = 'button';
+        statusButton.dataset.cambiarEstadoTaller = String(taller.id);
+        statusButton.dataset.activo = String(!taller.activo);
+        actions.append(editButton, statusButton);
+        content.append(actions);
+        card.append(summary, content);
+        fragment.append(card);
+    }
+    talleresContainer.replaceChildren(fragment);
+    filtrarTalleresAdmin();
+}
+
+function filtrarTalleresAdmin() {
+    const busqueda = normalizarTexto(buscarTalleresInput.value).toLocaleLowerCase('es-BO');
+    let coincidencias = 0;
+    const tarjetas = talleresContainer.querySelectorAll('.admin-taller');
+    for (const tarjeta of tarjetas) {
+        const coincide = tarjeta.dataset.busqueda.includes(busqueda);
+        tarjeta.hidden = !coincide;
+        if (coincide) coincidencias++;
+    }
+    talleresSinResultados.hidden = coincidencias > 0;
+    talleresSinResultados.textContent = tarjetas.length && busqueda
+        ? 'No se encontraron talleres que coincidan con la búsqueda.'
+        : 'No hay talleres registrados.';
+}
+
 function filtrarObrasAdmin() {
     const busqueda = normalizarTexto(buscarObrasInput.value).toLocaleLowerCase('es-BO');
     let coincidencias = 0;
@@ -419,6 +516,77 @@ function limpiarVistaPreviaImagen() {
     imagenPreview.hidden = true;
 }
 
+function limpiarVistaPreviaTaller() {
+    if (tallerImagenPreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(tallerImagenPreviewUrl);
+    tallerImagenPreviewUrl = null;
+    tallerImagenPreview.removeAttribute('src');
+    tallerImagenPreview.hidden = true;
+}
+
+function urlImagenTaller(path) {
+    const imagePath = String(path ?? '');
+    if (imagePath.startsWith('talleres-portadas/')) {
+        return supabase.storage.from('talleres-portadas')
+            .getPublicUrl(imagePath.slice('talleres-portadas/'.length)).data.publicUrl;
+    }
+    return new URL(imagePath.replace(/^\.?\//, ''), new URL(import.meta.env.BASE_URL, window.location.origin)).href;
+}
+
+function restablecerOpcionesHorarioTaller() {
+    const select = tallerForm.elements.horario;
+    select.replaceChildren(crearElemento('option', '', 'Selecciona un horario'));
+    select.options[0].value = '';
+    for (const horario of horariosTaller) {
+        const option = crearElemento('option', '', horario);
+        option.value = horario;
+        select.append(option);
+    }
+}
+
+function reiniciarFormularioTaller() {
+    tallerForm.reset();
+    delete tallerForm.dataset.tallerId;
+    delete tallerForm.dataset.imagenActual;
+    delete tallerForm.dataset.horarioActual;
+    tallerForm.elements.id.value = '';
+    tallerImagenInput.required = true;
+    tallerForm.querySelector('button[type="submit"]').textContent = 'Crear taller';
+    document.getElementById('adminTallerFormularioTitulo').textContent = 'Agregar taller o curso';
+    cancelarEdicionTaller.hidden = true;
+    restablecerOpcionesHorarioTaller();
+    limpiarVistaPreviaTaller();
+}
+
+function editarTaller(tallerId) {
+    const taller = talleresAdministrados.find(item => String(item.id) === String(tallerId));
+    if (!taller) throw new Error('No se encontró el taller que quieres editar. Actualiza la lista e inténtalo otra vez.');
+    reiniciarFormularioTaller();
+    tallerForm.dataset.tallerId = String(taller.id);
+    tallerForm.dataset.imagenActual = taller.img ?? '';
+    tallerForm.dataset.horarioActual = taller.horario;
+    tallerForm.elements.id.value = String(taller.id);
+    tallerForm.elements.titulo.value = taller.titulo;
+    tallerForm.elements.instructor.value = taller.instructor ?? '';
+    tallerForm.elements.descripcion.value = taller.descripcion ?? '';
+    tallerForm.elements.video_url.value = taller.video_url ?? '';
+    tallerForm.elements.cupos.value = String(taller.cupos);
+    const horarioSelect = tallerForm.elements.horario;
+    if (!horariosTaller.includes(taller.horario)) {
+        const option = crearElemento('option', '', `Horario actual: ${taller.horario}`);
+        option.value = taller.horario;
+        horarioSelect.append(option);
+    }
+    horarioSelect.value = taller.horario;
+    tallerImagenInput.required = false;
+    tallerForm.querySelector('button[type="submit"]').textContent = 'Guardar cambios';
+    document.getElementById('adminTallerFormularioTitulo').textContent = `Editar: ${taller.titulo}`;
+    cancelarEdicionTaller.hidden = false;
+    tallerImagenPreviewUrl = urlImagenTaller(taller.img);
+    tallerImagenPreview.src = tallerImagenPreviewUrl;
+    tallerImagenPreview.hidden = !taller.img;
+    tallerForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 imagenInput.addEventListener('change', () => {
     limpiarVistaPreviaImagen();
     const file = imagenInput.files?.[0];
@@ -428,10 +596,164 @@ imagenInput.addEventListener('change', () => {
     imagenPreview.hidden = false;
 });
 
+tallerImagenInput.addEventListener('change', () => {
+    limpiarVistaPreviaTaller();
+    const file = tallerImagenInput.files?.[0];
+    if (!file) return;
+    tallerImagenPreviewUrl = URL.createObjectURL(file);
+    tallerImagenPreview.src = tallerImagenPreviewUrl;
+    tallerImagenPreview.hidden = false;
+});
+
+cancelarEdicionTaller.addEventListener('click', reiniciarFormularioTaller);
+
 function manejarError(error, contexto) {
     console.error(contexto, error);
     mostrarEstado(error instanceof Error ? error.message : 'Ocurrió un error inesperado.', true);
 }
+
+tallerForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!tallerForm.reportValidity()) return;
+    const button = tallerForm.querySelector('button[type="submit"]');
+    const values = formValues(tallerForm);
+    const tallerId = tallerForm.dataset.tallerId;
+    const existingImage = tallerForm.dataset.imagenActual ?? '';
+    const file = tallerImagenInput.files?.[0];
+    let uploadedImagePath = null;
+    button.disabled = true;
+    try {
+        const title = String(values.titulo ?? '').trim();
+        const instructor = String(values.instructor ?? '').trim();
+        const horario = String(values.horario ?? '');
+        const cupos = Number(values.cupos);
+        const videoUrl = String(values.video_url ?? '').trim();
+        if (!title || !instructor) throw new Error('El nombre del taller y su instructor son obligatorios.');
+        if (!horariosTaller.includes(horario) && horario !== tallerForm.dataset.horarioActual) {
+            throw new Error('Selecciona uno de los horarios preestablecidos.');
+        }
+        if (!Number.isSafeInteger(cupos) || cupos < 0) {
+            throw new Error('Los cupos deben ser un número entero igual o mayor que cero.');
+        }
+        if (!esYouTube(videoUrl)) throw new Error('El enlace debe ser una URL válida de YouTube.');
+        if (!tallerId && !file) throw new Error('Adjunta una imagen de portada para crear el taller.');
+        let image = existingImage;
+        if (file) {
+            const extension = extensionImagen(file);
+            const path = `${crypto.randomUUID()}.${extension}`;
+            const { error: uploadError } = await supabase.storage
+                .from('talleres-portadas')
+                .upload(path, file, {
+                    cacheControl: '3600',
+                    contentType: file.type,
+                    upsert: false
+                });
+            if (uploadError) throw uploadError;
+            uploadedImagePath = path;
+            image = `talleres-portadas/${path}`;
+        }
+
+        const workshopData = {
+            titulo: title,
+            instructor,
+            horario,
+            cupos,
+            descripcion: String(values.descripcion ?? '').trim()
+                || 'Un espacio formativo para desarrollar habilidades teatrales y escénicas.',
+            video_url: videoUrl || null,
+            img: image
+        };
+        const result = tallerId
+            ? await supabase.from('talleres').update(workshopData).eq('id', tallerId).select('id').single()
+            : await supabase.from('talleres').insert(workshopData).select('id').single();
+        if (result.error) throw result.error;
+        uploadedImagePath = null;
+
+        let cleanupWarning = '';
+        if (file && existingImage.startsWith('talleres-portadas/')) {
+            const oldPath = existingImage.slice('talleres-portadas/'.length);
+            let cleanupError = null;
+            try {
+                const { error } = await supabase.storage.from('talleres-portadas').remove([oldPath]);
+                cleanupError = error;
+            } catch (error) {
+                cleanupError = error;
+            }
+            if (cleanupError) {
+                console.error('No se pudo eliminar la imagen anterior del taller.', cleanupError);
+                cleanupWarning = ' El cambio se guardó, pero la imagen anterior requiere limpieza manual.';
+            }
+        }
+        reiniciarFormularioTaller();
+        try {
+            await cargarAdministracion();
+        } catch (refreshError) {
+            console.error('El taller se guardó, pero no se pudo actualizar la lista.', refreshError);
+            mostrarEstado(
+                `El taller se guardó, pero no se pudo actualizar la lista. Recarga el panel para ver los cambios. ${refreshError instanceof Error ? refreshError.message : ''}`,
+                true
+            );
+            return;
+        }
+        mostrarEstado(`${tallerId ? 'Taller actualizado' : 'Taller creado'} correctamente.${cleanupWarning}`);
+    } catch (error) {
+        if (uploadedImagePath) {
+            let cleanupError = null;
+            try {
+                const { error } = await supabase.storage
+                    .from('talleres-portadas')
+                    .remove([uploadedImagePath]);
+                cleanupError = error;
+            } catch (storageError) {
+                cleanupError = storageError;
+            }
+            if (cleanupError) {
+                console.error('No se pudo limpiar la imagen después de un error al guardar el taller.', cleanupError);
+                const message = error instanceof Error ? error.message : 'Ocurrió un error inesperado.';
+                error = new Error(`${message} La imagen quedó en almacenamiento y requiere limpieza manual.`);
+            }
+        }
+        manejarError(error, 'No se pudo guardar el taller.');
+    } finally {
+        button.disabled = false;
+    }
+});
+
+document.getElementById('adminTalleres').addEventListener('click', async event => {
+    const editButton = event.target.closest('[data-editar-taller]');
+    if (editButton) {
+        try {
+            editarTaller(editButton.dataset.editarTaller);
+        } catch (error) {
+            manejarError(error, 'No se pudo abrir la edición del taller.');
+        }
+        return;
+    }
+
+    const statusButton = event.target.closest('[data-cambiar-estado-taller]');
+    if (!statusButton) return;
+    const activating = statusButton.dataset.activo === 'true';
+    const workshop = talleresAdministrados.find(item => String(item.id) === statusButton.dataset.cambiarEstadoTaller);
+    const action = activating ? 'reactivar' : 'retirar';
+    if (!activating && !window.confirm(`¿Retirar "${workshop?.titulo ?? 'este taller'}" de la oferta? Las inscripciones se conservarán para las estadísticas.`)) return;
+    statusButton.disabled = true;
+    try {
+        const { error } = await supabase.from('talleres')
+            .update({ activo: activating })
+            .eq('id', statusButton.dataset.cambiarEstadoTaller)
+            .select('id')
+            .single();
+        if (error) throw error;
+        await cargarAdministracion();
+        mostrarEstado(`Taller ${activating ? 'reactivado' : 'retirado'} correctamente.`);
+    } catch (error) {
+        manejarError(error, `No se pudo ${action} el taller.`);
+    } finally {
+        statusButton.disabled = false;
+    }
+});
+
+buscarTalleresInput.addEventListener('input', filtrarTalleresAdmin);
 
 document.getElementById('formNuevaObra').addEventListener('submit', async event => {
     event.preventDefault();
@@ -1056,7 +1378,7 @@ async function descargarReporte() {
             supabase.from('funciones').select('id, obra_id, sala_id, inicio, salida, estado'),
             supabase.from('reservas').select('id, funcion_id, butaca, created_at, estado, cancelada_en'),
             supabase.from('salas').select('id, nombre, capacidad, activa'),
-            supabase.from('talleres').select('id, titulo, activo, created_at'),
+            supabase.from('talleres').select('id, titulo, activo, created_at, horario, cupos, instructor'),
             supabase.from('inscripciones_talleres').select('id, taller_id, estado, created_at')
         ]);
         const failed = [obrasResult, funcionesResult, reservasResult, salasResult, talleresResult, inscripcionesResult].find(result => result.error);
@@ -1222,13 +1544,16 @@ async function descargarReporte() {
         }
         if (topWorks.length) graficoBarrasPdf(doc, 'Reservas confirmadas por obra', topWorks, worksChartY);
 
-        doc.addPage();
+        doc.addPage('a4', 'landscape');
         tituloPdf(doc, '4. Reporte de talleres', now);
         const workshopRows = talleres.map(taller => {
             const registrations = inscripciones.filter(item => item.taller_id === taller.id);
             const byStatus = status => registrations.filter(item => item.estado === status).length;
             return [
                 taller.titulo,
+                taller.instructor || 'Sin asignar',
+                taller.horario,
+                numero(taller.cupos),
                 taller.activo ? 'Activo' : 'Inactivo',
                 taller.created_at ? new Date(taller.created_at).toLocaleDateString('es-BO') : 'No disponible',
                 numero(registrations.length),
@@ -1237,12 +1562,12 @@ async function descargarReporte() {
                 numero(byStatus('rechazada') + byStatus('cancelada'))
             ];
         });
-        tablaPdf(doc, ['Taller', 'Estado', 'Registrado', 'Inscripciones', 'Pendientes', 'Aceptadas', 'Rechazadas/canceladas'], workshopRows);
+        tablaPdf(doc, ['Taller', 'Instructor', 'Horario', 'Cupos', 'Estado', 'Registrado', 'Inscripciones', 'Pendientes', 'Aceptadas', 'Rechazadas/canceladas'], workshopRows);
         doc.setFontSize(8);
         doc.text(
             'Limitación de datos: el esquema registra la fecha de creación y estado del taller, pero no fecha de realización ni asistencia efectiva. Las inscripciones no se presentan como asistencia.',
             14,
-            Math.min(doc.lastAutoTable.finalY + 8, 280),
+            Math.min(doc.lastAutoTable.finalY + 8, doc.internal.pageSize.getHeight() - 15),
             { maxWidth: 180 }
         );
 
