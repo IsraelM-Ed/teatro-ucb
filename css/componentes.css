@@ -241,15 +241,34 @@ input:invalid:not(:placeholder-shown) {
 .mapa {
     display: grid;
     position: relative;
-    gap: 8px;
     width: max-content;
     margin: auto;
     padding: 0.25rem 0.5rem 0.5rem;
 }
 
-.vista-butaca {
+.mapa-contenido {
+    display: grid;
+    justify-items: center;
+    gap: 0.75rem;
+}
+
+.mapa-asientos {
+    display: grid;
+    width: max-content;
+    gap: 8px;
+}
+
+.vista-butaca-zona {
+    display: grid;
     width: min(100%, 340px);
-    margin: 1rem auto 0;
+    min-height: 220px;
+    place-items: stretch;
+}
+
+.vista-butaca {
+    width: 100%;
+    min-height: 220px;
+    margin: 0;
     padding: 0.9rem;
     color: var(--color-texto);
     background: rgba(0, 0, 0, 0.76);
@@ -257,6 +276,13 @@ input:invalid:not(:placeholder-shown) {
     border-radius: var(--radio);
     text-align: center;
     animation: aparecer-vista 160ms ease-out;
+}
+
+.vista-butaca-ayuda {
+    align-self: center;
+    color: var(--color-suave);
+    font-size: 0.9rem;
+    text-align: center;
 }
 
 .vista-butaca p {
