@@ -117,7 +117,28 @@ body::after {
     gap: 0.6rem;
 }
 
+.red-social {
+    display: inline-grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--color-texto);
+    color: var(--color-bg);
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
 
+.red-social svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+}
+
+.red-social:hover,
+.red-social:focus-visible {
+    background: #d4af37;
+    transform: translateY(-2px);
+}
 
 
 
@@ -875,6 +896,15 @@ body::after {
         gap: 0.35rem;
     }
 
+        .red-social {
+        width: 28px;
+        height: 28px;
+    }
+
+    .red-social svg {
+        width: 16px;
+        height: 16px;
+    }
 
     .marca {
         flex-basis: min(221px, 42vw);

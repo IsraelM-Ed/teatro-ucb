@@ -1,4 +1,5 @@
 import { cerrarSesion, supabase, usuarioEsAdministrador } from './supabase.js';
+import { enlacesRedes } from './redes.js';
 
 let activeBackgroundLayer = 'before';
 let backgroundFrame = 0;
@@ -94,6 +95,7 @@ class TeatroNavigation extends HTMLElement {
                     </ul>
                 </nav>
                 <div class="redes-nav">
+                    ${enlacesRedes()}
                 </div>
                 <div class="sesion-nav" id="sesionNav" aria-live="polite">
                     <a href="${base}login.html">Sign in</a>
