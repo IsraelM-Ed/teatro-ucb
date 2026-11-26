@@ -100,7 +100,7 @@ class TeatroNavigation extends HTMLElement {
                     ${enlacesRedes()}
                 </div>
                 <div class="sesion-nav" id="sesionNav" aria-live="polite">
-                    <a href="${base}login.html">Sign in</a>
+                    <a href="${base}login.html">Iniciar sesión</a>
                 </div>
             </header>
         `;
@@ -188,7 +188,7 @@ class TeatroNavigation extends HTMLElement {
         if (!user) {
             const link = document.createElement('a');
             link.href = `${base}login.html`;
-            link.textContent = 'Sign in';
+            link.textContent = 'Iniciar sesión';
             container.append(link);
             return;
         }
@@ -200,7 +200,7 @@ class TeatroNavigation extends HTMLElement {
                     const adminLink = document.createElement('a');
                     adminLink.href = `${base}admin.html`;
                     adminLink.className = 'sesion-admin-link';
-                    adminLink.textContent = 'Admin';
+                    adminLink.textContent = 'Administración';
                     container.prepend(adminLink);
                 }
             })
