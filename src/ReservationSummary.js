@@ -39,6 +39,12 @@ class ReservationSummaryComponent {
     finishPayment() {
         cerrarPagoConfirmado();
     }
+
+    formatHoldTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = String(seconds % 60).padStart(2, '0');
+        return `${minutes} min ${remainingSeconds} s`;
+    }
 }
 
 Component({
@@ -50,7 +56,7 @@ Component({
             <p>Total: <strong>Bs {{ state.total }}</strong></p>
             <p class="reserva-bloqueo" [hidden]="!state.selectedSeats.length">
                 Butacas bloqueadas temporalmente:
-                <strong>{{ state.holdSecondsRemaining }} s</strong>
+                <strong>{{ formatHoldTime(state.holdSecondsRemaining) }}</strong>
                 <span [hidden]="!state.holdUpdating"> · Actualizando selección…</span>
             </p>
         </div>

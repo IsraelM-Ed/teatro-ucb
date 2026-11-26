@@ -9,8 +9,8 @@ let selectedFunctionImage = null;
 
 function actualizarFondoTeatro(screen, functionImage, base) {
     if (functionImage) selectedFunctionImage = functionImage;
-    const fondoEscenario = `url("${base}assets/keke1.png")`;
-    const fondoCartelera = `url("${base}assets/keke2.png")`;
+    const fondoEscenario = `url("${base}assets/keke6.jpeg")`;
+    const fondoCartelera = fondoEscenario;
     const backgrounds = {
         hero: {
             image: `linear-gradient(0deg, rgba(0,0,0,.84), rgba(0,0,0,.3) 52%, rgba(0,0,0,.08)), ${fondoEscenario}`,
